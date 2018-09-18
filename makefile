@@ -44,7 +44,7 @@ $(PLOT): $(RESULTS)
 	gnuplot plotscript
 
 remove:
-	docker rm $(NAME)
+	docker rm -f $(NAME)
 
 clean:
-	rm -f $(RESULTS)
+	rm -f $(RESULTS) $(PLOT)

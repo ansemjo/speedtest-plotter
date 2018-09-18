@@ -58,6 +58,7 @@ When you have collected enough results you can stop the container:
 
 Then export the results to `results.csv` and plot them with `gnuplot`:
 
+    make csv
     make plot
     xdg-open results.png
 

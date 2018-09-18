@@ -1,7 +1,0 @@
-#!/bin/sh
-
-# echo csv header once on startup
-speedtest-cli --csv-header
-
-# exec crontab for regular tests
-exec crond -f

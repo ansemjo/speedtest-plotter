@@ -1,11 +1,15 @@
+# image and container names
 IMAGE   := speedtest
 NAME    := speedtest
-RESULTS := results.csv
 
-.PHONY: help run stop image logs results clean
+# default
+MINUTES := 15
+SCHEDULE := */$(MINUTES) * * * *
 
-run: image
-	docker run -d --name $(NAME) $(IMAGE)
+.PHONY: help run stop image logs results remove clean
+
+run:
+	docker run -d --name $(NAME) -e SCHEDULE="$(SCHEDULE)" $(IMAGE)
 
 help:
 	@echo "make ..."
@@ -14,6 +18,7 @@ help:
 	@echo "   logs    - output csv logs up until now"
 	@echo "   stop    - stop container"
 	@echo "   results - export logs to $(RESULTS)"
+	@echo "   remove  - remove container"
 	@echo "   clean   - remove file $(RESULTS)"
 
 stop:
@@ -28,6 +33,9 @@ logs:
 results: $(RESULTS)
 $(RESULTS):
 	make --quiet logs > $@
+
+remove:
+	docker rm $(NAME)
 
 clean:
 	rm -f $(RESULTS)

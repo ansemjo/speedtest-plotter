@@ -17,6 +17,8 @@ In order to plot the results [gnuplot](http://gnuplot.sourceforge.net) is
 required. Alternatively open the `result.csv` with any tabular calculation
 program like Microsoft Excel or LibeOffice Calc.
 
+![example plot](example.png)
+
 ## usage
 
 See help on available makefile targets:

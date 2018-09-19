@@ -64,6 +64,15 @@ Then export the results to `results.csv` and plot them with `gnuplot`:
     make plot
     xdg-open results.png
 
+To apply different smoothing functions for the plot, use `SMOOTH`. See the
+[gnuplot manual](http://gnuplot.info/docs_5.2/Gnuplot_5.2.pdf#section*.174)
+for possible options. For a greater number of measurements, `bezier` might
+be useful:
+
+    make plot SMOOTH=bezier
+
+![example bezier plot](example_bezier.png)
+
 ### direct speedtest-cli usage
 
 You can also use a simple and naiive `sleep`-loop to collect measurements

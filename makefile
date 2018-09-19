@@ -5,12 +5,13 @@ NAME    := speedtest
 # output files
 RESULTS := results.csv
 PLOT    := results.png
+SMOOTH  := acspl
 
 # default test schedule
 MINUTES := 15
 SCHEDULE := */$(MINUTES) * * * *
 
-.PHONY: help run stop image logs results plot remove clean
+.PHONY: help run direct stop image logs results plot remove clean
 
 help:
 	@echo " image   - build docker image"
@@ -46,7 +47,7 @@ $(RESULTS):
 
 plot: $(PLOT)
 $(PLOT):
-	gnuplot plotscript
+	sed 's/acspl/$(SMOOTH)/' plotscript | gnuplot
 
 remove:
 	docker rm -f $(NAME)

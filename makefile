@@ -45,7 +45,7 @@ $(RESULTS):
 	make --quiet logs > $@
 
 plot: $(PLOT)
-$(PLOT): $(RESULTS)
+$(PLOT):
 	gnuplot plotscript
 
 remove:

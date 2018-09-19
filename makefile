@@ -5,7 +5,7 @@ NAME    := speedtest
 # output files
 RESULTS := results.csv
 PLOT    := results.png
-SMOOTH  := acspl
+SMOOTH  := acsplines
 
 # default test schedule
 MINUTES := 15

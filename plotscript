@@ -1,4 +1,5 @@
-set title "Speedtest Results"
+set title "Speedtest Results, acspl smoothing\n\
+  https://github.com/ansemjo/speedtest-plotter"
 set xlabel "Timestamp [UTC]"
 set xdata time
 set timefmt "%Y-%m-%dT%H:%M:%S.*Z"

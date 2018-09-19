@@ -15,15 +15,21 @@ SCHEDULE := */$(MINUTES) * * * *
 help:
 	@echo " image   - build docker image"
 	@echo " run     - run docker container in background"
-	@echo " logs    - output csv logs up until now"
+	@echo " direct  - loop speedtest-cli and write to $(RESULTS)"
+	@echo " logs    - output csv logs of docker container"
 	@echo " stop    - stop container"
-	@echo " csv     - export logs to $(RESULTS)"
-	@echo " plot    - plot results to $(PLOT)"
+	@echo " csv     - export docker logs to $(RESULTS)"
+	@echo " plot    - plot $(RESULTS) to $(PLOT)"
 	@echo " remove  - remove container"
-	@echo " clean   - remove file $(RESULTS)"
+	@echo " clean   - remove files $(RESULTS) and $(PLOT)"
 
 run:
 	docker run -d --name $(NAME) -e SCHEDULE="$(SCHEDULE)" $(IMAGE)
+
+direct:
+	speedtest-cli --csv-header | tee $(RESULTS)
+	while speedtest-cli --secure --csv | tee -a $(RESULTS) \
+		&& sleep $$(( $(MINUTES) * 60 )); do true; done;
 
 stop:
 	docker stop $(NAME)

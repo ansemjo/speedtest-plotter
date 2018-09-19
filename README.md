@@ -6,8 +6,10 @@ uses a crontab to log speedtest results in csv format every 15 minutes.
 
 ## installation
 
-Obviously, you need to have Docker installed. Refer to your distribution or
-[the Docker docs](https://docs.docker.com/install/) on how to do that.
+Obviously, you need to have Docker installed to run the container. Refer
+to your distribution or [the Docker docs](https://docs.docker.com/install/)
+on how to do that. You can also [take measurements](#direct-speedtest-cli-usage)
+without using the Docker container if you have `speedtest-cli` installed.
 
 From within this directory you can use the makefile to build the image and
 run it. This requires [make](https://www.gnu.org/software/make/), of course.
@@ -61,6 +63,24 @@ Then export the results to `results.csv` and plot them with `gnuplot`:
     make csv
     make plot
     xdg-open results.png
+
+### direct speedtest-cli usage
+
+You can also use a simple and naiive `sleep`-loop to collect measurements
+without using the Docker container at all:
+
+    make direct MINUTES=5
+
+This will run a simple loop which sleeps for MINUTES * 60 seconds between
+measurements. To be useful, you'll need to let this command run for a couple
+of hours, thus I suggest you use [tmux](https://github.com/tmux/tmux) or
+[screen](https://www.gnu.org/software/screen/) to detach your tty while it does.
+
+You can also use any other other method to build your `results.csv`, it just
+needs to conform to the expected format with a header and one measurement per
+line. Afterwards plot the image as shown above:
+
+    make plot
 
 ### cleanup
 

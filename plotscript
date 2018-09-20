@@ -1,3 +1,6 @@
+# Copyright (c) 2018 Anton Semjonov
+# Licensed under the MIT License
+
 set title "Speedtest Results, acspl smoothing\n\
   https://github.com/ansemjo/speedtest-plotter"
 set xlabel "Timestamp [UTC]"

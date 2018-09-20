@@ -1,5 +1,8 @@
 #!/bin/ash
 
+# Copyright (c) 2018 Anton Semjonov
+# Licensed under the MIT License
+
 # echo csv header once on startup
 speedtest-cli --csv-header
 

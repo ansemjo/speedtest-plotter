@@ -98,3 +98,8 @@ are not needed anymore:
 
     make remove
     make clean
+
+## license
+
+Copyright (c) 2018 Anton Semjonov
+Licensed under the MIT License

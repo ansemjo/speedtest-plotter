@@ -1,3 +1,6 @@
+# Copyright (c) 2018 Anton Semjonov
+# Licensed under the MIT License
+
 FROM alpine:3.8
 
 # install necessary speedtest-cli

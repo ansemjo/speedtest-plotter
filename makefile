@@ -1,3 +1,6 @@
+# Copyright (c) 2018 Anton Semjonov
+# Licensed under the MIT License
+
 # image and container names
 IMAGE   := ansemjo/speedtest
 NAME    := speedtest

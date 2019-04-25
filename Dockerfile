@@ -3,9 +3,11 @@
 
 FROM alpine:latest
 
-# install necessary packages
+# install necessary packages and fonts
 RUN apk add --no-cache python3 gnuplot \
-  && pip3 install --no-cache-dir livereload speedtest-cli
+  && pip3 install --no-cache-dir livereload speedtest-cli \
+  && apk add --no-cache fontconfig ttf-ubuntu-font-family msttcorefonts-installer \
+  && update-ms-fonts && fc-cache -f
 
 # default cron interval
 ENV MINUTES=15

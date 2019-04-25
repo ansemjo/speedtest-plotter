@@ -3,15 +3,23 @@
 
 FROM alpine:latest
 
-# install necessary speedtest-cli
-RUN apk add --no-cache speedtest-cli
-
-# create python link in PATH
-RUN ln -s python3 /usr/bin/python
+# install necessary packages
+RUN apk add --no-cache python3 gnuplot \
+  && pip3 install --no-cache-dir livereload speedtest-cli
 
 # default cron interval
 ENV MINUTES=15
 
-# copy and run init, exec'ing crond
-COPY speedtests.sh /speedtests.sh
-CMD ["/bin/ash", "/speedtests.sh"]
+# listening port
+ENV LISTEN=8000
+
+# output directory
+ENV RESULTS=/results
+
+# copy entrypoint, run scripts and index.html
+COPY src/* /scripts/
+COPY plotscript $RESULTS/
+COPY index.html $RESULTS/
+
+# start with entrypoint which exec's crond
+CMD ["/bin/sh", "/scripts/entrypoint.sh"]

@@ -19,7 +19,7 @@ In order to plot the results [gnuplot](http://gnuplot.sourceforge.net) is
 required. Alternatively open the `result.csv` with any tabular calculation
 program like Microsoft Excel or LibeOffice Calc.
 
-![example plot](example.png)
+![example plot](assets/example.png)
 
 ## usage
 
@@ -71,7 +71,7 @@ be useful:
 
     make plot SMOOTH=bezier
 
-![example bezier plot](example_bezier.png)
+![example bezier plot](assets/example_bezier.png)
 
 ### direct speedtest-cli usage
 

@@ -18,7 +18,7 @@ fi
 export SCHEDULE="${SCHEDULE:-"*/${MINUTES:-15} * * * *"}"
 
 # install crontab with schedule from env
-echo "$SCHEDULE speedtest-cli --secure --csv" | crontab -
+echo "$SCHEDULE speedtest-cli --secure --csv | tee -a '$RESULTS'" | crontab -
 
 # start crontab for regular tests
-crond -f | tee "$RESULTS"
+exec crond -f

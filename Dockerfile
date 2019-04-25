@@ -1,7 +1,7 @@
 # Copyright (c) 2018 Anton Semjonov
 # Licensed under the MIT License
 
-FROM alpine:3.8
+FROM alpine:latest
 
 # install necessary speedtest-cli
 RUN apk add --no-cache speedtest-cli

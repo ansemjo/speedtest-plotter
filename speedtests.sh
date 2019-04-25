@@ -15,7 +15,7 @@ fi
 # assemble cron schedule from env
 # either use '-e MINUTES=n' to run test every n minutes
 # or define the complete schedule part with '-e SCHEDULE=...'
-export SCHEDULE="${SCHEDULE:-"*/$MINUTES * * * *"}"
+export SCHEDULE="${SCHEDULE:-"*/${MINUTES:-15} * * * *"}"
 
 # install crontab with schedule from env
 echo "$SCHEDULE speedtest-cli --secure --csv" | crontab -

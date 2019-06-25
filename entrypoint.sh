@@ -3,12 +3,10 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-# $RESULTS = results output directory
-export RESULTS="${RESULTS:-/results}"
-mkdir -p "$RESULTS"
-
-# start livereload server in background
-livereload --wait 5 --host "0.0.0.0" --port "$LISTEN" "$RESULTS" >/dev/null &
+# if DATABASE is an SQlite uri, create base directory
+if [[ ${DATABASE%%://*} == sqlite ]]; then
+  mkdir -pv "$(dirname "${DATABASE##*:///}")"
+fi
 
 # assemble cron schedule from env
 # either use '-e MINUTES=n' to run test every n minutes
@@ -16,7 +14,10 @@ livereload --wait 5 --host "0.0.0.0" --port "$LISTEN" "$RESULTS" >/dev/null &
 export SCHEDULE="${SCHEDULE:-"*/${MINUTES:-15} * * * *"}"
 
 # install crontab with schedule from env
-echo "$SCHEDULE /bin/sh /scripts/speedtest.sh" | crontab -
+echo "$SCHEDULE /opt/speedtest-plotter/speedtest-plotter measure" | crontab -
+
+# run server in background
+(cd /opt/speedtest-plotter/ && ./speedtest-plotter serve) &
 
 # start crontab for regular tests
 crond -f

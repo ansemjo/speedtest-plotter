@@ -1,27 +1,31 @@
-# Copyright (c) 2018 Anton Semjonov
+# Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-FROM alpine:latest
+FROM python:3-alpine
 
 # install necessary packages and fonts
-RUN apk add --no-cache python3 gnuplot \
-  && pip3 install --no-cache-dir livereload speedtest-cli \
-  && apk add --no-cache fontconfig ttf-ubuntu-font-family msttcorefonts-installer \
-  && update-ms-fonts && fc-cache -f
+RUN apk add --no-cache gnuplot ttf-droid
+
+# copy requirements file and install with pip
+COPY requirements.txt /requirements.txt
+RUN apk add --no-cache --virtual build-deps musl-dev gcc postgresql-dev \
+  && apk add --no-cache postgresql-libs \
+  && pip install --no-cache-dir -r /requirements.txt \
+  && apk del --purge build-deps
 
 # default cron interval
-ENV MINUTES=15
+ENV MINUTES="15"
 
 # listening port
-ENV LISTEN=8000
+ENV PORT="8000"
 
-# output directory
-ENV RESULTS=/results
+# database uri (sqlalchemy uri)
+ENV DATABASE="sqlite:////data/speedtests.db"
 
-# copy entrypoint, run scripts and index.html
-COPY src/* /scripts/
-COPY plotscript $RESULTS/
-COPY index.html $RESULTS/
+# copy entrypoint and scripts
+WORKDIR /opt/speedtest-plotter
+COPY entrypoint.sh /entrypoint.sh
+COPY plotscript speedtest-plotter ./
 
 # start with entrypoint which exec's crond
-CMD ["/bin/sh", "/scripts/entrypoint.sh"]
+CMD ["/bin/ash", "/entrypoint.sh"]

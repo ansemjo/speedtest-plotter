@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 
+# Copyright (c) 2019 Anton Semjonov
+# Licensed under the MIT License
+
 import subprocess, csv, tempfile, sys, argparse, os
 import dateutil.parser
 import flask, dataset
 
 # default / environment variables
 DATABASE = os.environ.get("DATABASE", "sqlite:////data/speedtest.db")
+PORT = os.environ.get("PORT", "8000")
 
 # commandline parser
 p = argparse.ArgumentParser()
-p.add_argument("-d", dest="database", help="database connection uri (default env:DATABASE)", default=DATABASE)
+p.add_argument("-d", dest="database", help="database connection uri (env:DATABASE)", default=DATABASE)
+p.add_argument("-p", dest="port", help="port to run application server on (env:PORT)", default=PORT)
 p.add_argument("command", choices=["serve", "measure"], help="start server or take a measurement")
 args = p.parse_args()
 
@@ -60,7 +65,7 @@ def retrieve_measurements(request):
     try: after = dateutil.parser.parse(after).isoformat()
     except Exception as e:
       raise ValueError("cannot parse argument as date: " + str(e))
-    return db.query("SELECT * FROM speedtest WHERE Timestamp >= :ts LIMIT :li", ts=after, li=limit)
+    return db.query("SELECT * FROM speedtest WHERE speedtest.Timestamp >= :ts LIMIT :li", ts=after, li=limit)
   else:
     return table.all(_limit=limit)
 
@@ -140,7 +145,7 @@ def flask_server():
     except Exception as e:
       return flask.Response(str(e), mimetype="text/plain", status=500)
 
-  app.run(threaded=False)
+  app.run(threaded=False, port=args.port)
 
 # ---------- main() ----------
 if args.command == "serve":

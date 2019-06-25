@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+
+import subprocess, csv, tempfile, sys, argparse, os
+import dateutil.parser
+import flask, dataset
+
+# default / environment variables
+DATABASE = os.environ.get("DATABASE", "sqlite:////data/speedtest.db")
+
+# commandline parser
+p = argparse.ArgumentParser()
+p.add_argument("-d", dest="database", help="database connection uri (default env:DATABASE)", default=DATABASE)
+p.add_argument("command", choices=["serve", "measure"], help="start server or take a measurement")
+args = p.parse_args()
+
+# connect to database
+db = dataset.connect(args.database)
+table = db["speedtest"]
+
+# run a command and capture output
+def run(cmd, stdin=None):
+  return subprocess.run(cmd, capture_output=True, stdin=stdin)
+
+# csv column names
+FIELDNAMES = ("Server ID", "Sponsor", "Server Name", "Timestamp", "Distance", "Ping", "Download", "Upload", "Share", "IP Address")
+
+# parse a csv result from speedtest-cli to dict
+def parse_result(result):
+  return dict(zip(FIELDNAMES, result.decode().strip().split(',')))
+
+# output stored database rows as spooled csv file with header
+def csvout(rows):
+  f = tempfile.SpooledTemporaryFile(mode="wt+")
+  wr = csv.DictWriter(f, fieldnames=FIELDNAMES)
+  wr.writeheader()
+  for row in rows:
+    del row["id"]
+    wr.writerow(row)
+  f.seek(0)
+  return f
+
+# take a new measurement with speedtest-cli
+def take_measurement():
+  res = run(["speedtest-cli", "--csv"])
+  if res.returncode != 0:
+    print(res.stderr, file=sys.stderr)
+  r = parse_result(res.stdout)
+  table.insert(r)
+  print(r)
+
+# retrieve measurements from table applying optional filters
+def retrieve_measurements(request):
+
+  # retrieve request arguments
+  limit = request.args.get("limit", None) or 4096
+  after = request.args.get("after", None)
+
+  # maybe use a query to filter by timestamp
+  if after:
+    try: after = dateutil.parser.parse(after).isoformat()
+    except Exception as e:
+      raise ValueError("cannot parse argument as date: " + str(e))
+    return db.query("SELECT * FROM speedtest WHERE Timestamp >= :ts LIMIT :li", ts=after, li=limit)
+  else:
+    return table.all(_limit=limit)
+
+def flask_server():
+
+  # initialize flask
+  print(" * Connected database: {}".format(args.database))
+  app = flask.Flask("speedtest", root_path="./")
+  app.env = "development"
+
+  # homepage with rendered results
+  @app.route("/")
+  def home():
+
+    TEMPLATE = """
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Speedtest Plot</title>
+          <style>
+            input {
+              box-sizing: border-box;
+              border: 1px solid #000;
+              border-radius: 3px;
+              padding: 0.5em;
+            }
+            html {
+              font-family: monospace;
+            }
+            img {
+              border: 1px solid black;
+              margin: 1em;
+              max-width: calc(100% - 2em);
+            }
+          </style>
+        </head>
+        <body>
+          <center>
+            <form action="/" method="get">
+              Limit: <input type="number" name="limit" value="{{ args.limit }}" title="limit to n results">
+              After: <input type="text" name="after" value="{{ args.after }}" title="limit to results after this date">
+              <input type="submit" value="Apply">
+            </form>
+            <a href="/results.csv?limit={{ args.limit }}&after={{ args.after }}">
+              <img src="/results.png?limit={{ args.limit }}&after={{ args.after }}">
+            </a>
+          </center>
+        </body>
+      </html>
+    """
+    return flask.render_template_string(TEMPLATE, args=flask.request.args)
+
+  # return rendered plot picture
+  @app.route("/results.png")
+  def render():
+    try:
+      rows = retrieve_measurements(flask.request)
+      data = csvout(rows)
+      plot = run(["gnuplot", "-c", "plotscript", "/dev/stdin", "/dev/stdout"], stdin=data)
+      data.close()
+      if plot.returncode != 0:
+        raise ValueError(plot.stderr.decode())
+      return flask.Response(plot.stdout, mimetype="image/png")
+    except Exception as e:
+      return flask.Response(str(e), mimetype="text/plain", status=500)
+
+  # return raw data in formatted csv
+  @app.route("/results.csv")
+  def results():
+    try:
+      rows = retrieve_measurements(flask.request)
+      data = csvout(rows)
+      out = data.read()
+      data.close()
+      return flask.Response(out, mimetype="text/plain")
+    except Exception as e:
+      return flask.Response(str(e), mimetype="text/plain", status=500)
+
+  app.run(threaded=False)
+
+# ---------- main() ----------
+if args.command == "serve":
+  flask_server()
+else:
+  take_measurement()

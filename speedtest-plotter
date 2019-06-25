@@ -145,7 +145,7 @@ def flask_server():
     except Exception as e:
       return flask.Response(str(e), mimetype="text/plain", status=500)
 
-  app.run(threaded=False, port=args.port)
+  app.run(threaded=False, port=args.port, host="0.0.0.0")
 
 # ---------- main() ----------
 if args.command == "serve":

@@ -10,6 +10,7 @@ set xtics format "%Y-%m-%d\n%H:%M:%S" rotate by -40
 set ylabel "Measured Speed"
 set ytics format "%.2s %cBit/s" nomirror
 set yrange [0:*]
+set autoscale xfix
 set linetype 1 lw 3      #lc rgb "blue"
 set linetype 2 lw 3      #lc rgb "red"
 set linetype 3 lw 1 pt 9 #lc rgb "green"

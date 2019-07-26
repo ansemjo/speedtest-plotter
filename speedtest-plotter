@@ -65,7 +65,7 @@ def retrieve_measurements(request):
     try: after = dateutil.parser.parse(after).isoformat()
     except Exception as e:
       raise ValueError("cannot parse argument as date: " + str(e))
-    return db.query("SELECT * FROM speedtest WHERE \"Timestamp\" >= :ts ORDER BY \"Timestamp\" DESC LIMIT :li", ts=after, li=limit)
+    return db.query("SELECT * FROM speedtest WHERE \"Timestamp\" >= :ts ORDER BY \"Timestamp\" ASC LIMIT :li", ts=after, li=limit)
   else:
     return db.query("SELECT * FROM speedtest WHERE \"Timestamp\" IS NOT NULL ORDER BY \"Timestamp\" DESC LIMIT :li", li=limit)
 

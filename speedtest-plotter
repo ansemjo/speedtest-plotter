@@ -5,7 +5,7 @@
 
 import subprocess, csv, tempfile, sys, argparse, os
 import dateutil.parser
-import flask, dataset
+import dataset
 
 # default / environment variables
 DATABASE = os.environ.get("DATABASE", "sqlite:////data/speedtest.db")
@@ -15,7 +15,9 @@ PORT = os.environ.get("PORT", "8000")
 p = argparse.ArgumentParser()
 p.add_argument("-d", dest="database", help="database connection uri (env:DATABASE)", default=DATABASE)
 p.add_argument("-p", dest="port", help="port to run application server on (env:PORT)", default=PORT)
-p.add_argument("command", choices=["serve", "measure"], help="start server or take a measurement")
+p.add_argument("-l", dest="limit", help="limit number of results when dumping", default=32768)
+p.add_argument("-a", dest="after", help="start dump after this date", default=None)
+p.add_argument("command", choices=["serve", "measure", "dump"], help="start webserver, take a measurement or dump results")
 args = p.parse_args()
 
 # connect to database
@@ -38,7 +40,7 @@ def csvout(rows):
   f = tempfile.SpooledTemporaryFile(mode="wt+")
   wr = csv.DictWriter(f, fieldnames=FIELDNAMES)
   wr.writeheader()
-  for row in rows:
+  for row in sorted(rows, key=lambda r: r["id"]):
     del row["id"]
     wr.writerow(row)
   f.seek(0)
@@ -53,12 +55,14 @@ def take_measurement():
   table.insert(r)
   print(r)
 
-# retrieve measurements from table applying optional filters
-def retrieve_measurements(request):
+# retrieve request parameters
+def request_params(request):
+  limit = flask.request.args.get("limit", None) or 32768
+  after = flask.request.args.get("after", None)
+  return (limit, after)
 
-  # retrieve request arguments
-  limit = request.args.get("limit", None) or 32768
-  after = request.args.get("after", None)
+# retrieve measurements from table applying optional filters
+def retrieve_measurements(limit, after):
 
   # maybe use a query to filter by timestamp
   if after:
@@ -72,6 +76,7 @@ def retrieve_measurements(request):
 def flask_server():
 
   # initialize flask
+  import flask
   print(" * Connected database: {}".format(args.database))
   app = flask.Flask("speedtest", root_path="./")
   app.env = "development"
@@ -123,7 +128,8 @@ def flask_server():
   @app.route("/results.png")
   def render():
     try:
-      rows = retrieve_measurements(flask.request)
+      limit, after = request_params(flask.request)
+      rows = retrieve_measurements(limit, after)
       data = csvout(rows)
       plot = run(["gnuplot", "-c", "plotscript", "/dev/stdin", "/dev/stdout"], stdin=data)
       data.close()
@@ -137,7 +143,8 @@ def flask_server():
   @app.route("/results.csv")
   def results():
     try:
-      rows = retrieve_measurements(flask.request)
+      limit, after = request_params(flask.request)
+      rows = retrieve_measurements(limit, after)
       data = csvout(rows)
       out = data.read()
       data.close()
@@ -148,7 +155,16 @@ def flask_server():
   app.run(threaded=False, port=args.port, host="0.0.0.0")
 
 # ---------- main() ----------
-if args.command == "serve":
-  flask_server()
-else:
-  take_measurement()
+try:
+  if args.command == "serve":
+    flask_server()
+  elif args.command == "measure":
+    take_measurement()
+  else:
+      rows = retrieve_measurements(args.limit, args.after)
+      data = csvout(rows)
+      print(data.read(), end="")
+      data.close()
+except Exception as e:
+  print(e)
+  exit(1)

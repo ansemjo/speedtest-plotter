@@ -1,6 +1,7 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
+# metadata, labels, ranges, etc.
 set title "Speedtest Results\ngithub.com/ansemjo/speedtest-plotter"
 set timestamp
 set xlabel "Measurement Date [UTC]"
@@ -10,16 +11,32 @@ set xtics format "%Y-%m-%d\n%H:%M:%S" rotate by -40
 set ylabel "Measured Speed"
 set ytics format "%.2s %cBit/s" nomirror
 set yrange [0:*]
-set autoscale xfix
-set linetype 1 lw 3      #lc rgb "blue"
-set linetype 2 lw 3      #lc rgb "red"
-set linetype 3 lw 1 pt 9 #lc rgb "green"
 set y2label "Ping"
 set y2tics format "%.0f ms" nomirror
-set y2range [0:100]
+set y2range [0:*]
 set grid
 set datafile separator ","
+
+# line styles
+set linetype 1 lw 1 lc rgb "skyblue"            # download
+set linetype 2 lw 1 lc rgb "coral"              # upload
+set linetype 3 lw 1 lc rgb "light-green" pt 9   # ping
+set linetype 4 lw 3 lc rgb "navy"               # smooth download
+set linetype 5 lw 3 lc rgb "orange-red"         # smooth upload
+
+# calculate averages per dimension
+avgping(x) = ping
+fit avgping(x) ARG1 using 4:6 via ping
+avgdown(x) = down
+fit avgdown(x) ARG1 using 4:7 via down
+avgup(x) = up
+fit avgup(x) ARG1 using 4:8 via up
+
+# plot the results
 set terminal png size 1280, 720
 set output ARG2
-plot for [col=7:8] ARG1 using 4:col title col with histeps, \
-  '' using 4:6 title col axes x1y2 with points
+plot \
+  for [col=7:8] ARG1 using 4:col notitle with steps, \
+  ARG1 using 4:6 title gprintf("Ping (... %.0f ms)", avgping(x)) axes x1y2 with points, \
+  ARG1 using 4:7 title gprintf("Download (... %.2s %cBit/s)", avgdown(x)) sm bezier, \
+  ARG1 using 4:8 title gprintf("Upload (... %.2s %cBit/s)", avgup(x)) sm bezier, \

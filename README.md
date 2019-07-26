@@ -1,106 +1,89 @@
-# speedtest logger
+# speedtest-plotter
 
-This is a Docker container with the tool
-[speedtest-cli](https://github.com/sivel/speedtest-cli) inside, which
-uses a crontab to log speedtest results in csv format every couple minutes
-and serves the plotted results with a simple flask app.
+This is a collection of scripts, which takes internet speedtest measurements
+with [speedtest-cli](https://github.com/sivel/speedtest-cli) and plot them
+with [gnuplot](http://gnuplot.sourceforge.net). A crontab schedule can be used
+to automate measurements every couple of minutes and save them to a database.
+The results can optionally be displayed through a simple Flask webserver.
 
-## installation
+![example plot of speedtest results](example.png)
 
-Obviously, you need to have Docker installed to run the container. Refer
-to your distribution or [the Docker docs](https://docs.docker.com/install/)
-on how to do that. You can also [take measurements](#direct-speedtest-cli-usage)
-without using the Docker container if you have `speedtest-cli` installed.
+## USAGE
 
-From within this directory you can use the makefile to build the image and
-run it. This requires [make](https://www.gnu.org/software/make/), of course.
-Take a look inside the [makefile](makefile) to see what the targets do.
+### CONTAINER
 
-In order to plot the results [gnuplot](http://gnuplot.sourceforge.net) is
-required. Alternatively open the `result.csv` with any tabular calculation
-program like Microsoft Excel or LibeOffice Calc.
+The main distribution method is the automatically built container at
+[ansemjo/speedtest](https://hub.docker.com/r/ansemjo/speedtest).
+Obviously, you need to have a container runtime like `docker` or `podman`
+installed to run the container.
 
-![example plot](assets/example.png)
+To start the container with default settings run:
 
-## usage
+    docker run -d -p 8000:8000 ansemjo/speedtest
 
-See help on available makefile targets:
+This will take a measurement every 15 minutes, save them to a SQLite database
+in `/data/speedtests.db` and run the webserver on port `8000`. Visit http://localhost:8000
+to look at the plotted results. (*Note: The smoothed bezier curves require at least two
+measurements and the image will stay blank otherwise. So you might have to wait a while first.*)
 
-    make help
+For data persistence, either mount a volume at `/data` to save the database file
+or set the environment variable `DATABASE` to an SQLAlchemy-compatible URI. A PostgreSQL
+URI might look like this:
 
-### build and run the image
+    docker run -d \
+      -p 8000:8000 \
+      -e DATABASE=postgresql://user:password@hostname:5432/database' \
+      ansemjo/speedtest
 
-Build the Docker image:
+You can modify the measurement schedule with the environment variables `MINUTES` and
+`SCHEDULE`. The former takes a measurement every `n` minutes and the latter may define
+an entirely custom cron schedule like "four times a day":
 
-    make image
+    docker run -d -p 8000:8000 -e SCHEDULE="0 3,9,15,21 * * *" ansemjo/speedtest
 
-Run the image in the background:
+The webserver is a single-threaded Flask application, which may not be suitable
+for production usage. To disable the webserver completely set the `PORT` environment
+variable to an empty string. This will only take measurements and save them to the
+database.
 
-    make run
+    docker run -d -e PORT= -v speedtests:/data ansemjo/speedtest
 
-You can specify an alternative schedule for the speedtests. If you want to
-run tests every 5 minutes (default is 15) use:
+To dump the results as CSV from a running container use the `dump` command:
 
-    make run MINUTES=5
+    docker exec $containerid speedtest-plotter dump > results.csv
 
-Or specify the [complete schedule](https://crontab.guru/) directly, e.g.
-"four times a day":
+### PYTHON SCRIPT
 
-    make run SCHEDULE="0 */6 * * *"
+You can use the Python script by itself locally, too. First install the requirements:
 
-### export results
+    pip install -r requirements.txt
 
-Check / export the logs after a while. The results are formatted as CSV and
-are output to stdout:
+Choose a database location and take any number of measurements:
 
-    make logs
+    ./speedtest-plotter -d sqlite:///$PWD/measurements.db measure
+    ...
 
-When you have collected enough results you can stop the container:
+Then start the flask webserver to look at the results:
 
-    make stop
+    ./speedtest-plotter -d sqlite:///$PWD/measurements.db serve
 
-Then export the results to `results.csv` and plot them with `gnuplot`:
+### GNUPLOT SCRIPT
 
-    make csv
-    make plot
-    xdg-open results.png
+To keep things really simple, you can also take measurements manually with `speedtest-cli` and only
+plot an image with `gnuplot`.
 
-To apply different smoothing functions for the plot, use `SMOOTH`. See the
-[gnuplot manual](http://gnuplot.info/docs_5.2/Gnuplot_5.2.pdf#section*.174)
-for possible options. For a greater number of measurements, `bezier` might
-be useful:
+The [`plotscript`](plotscript) expects the format that `speedtest-cli` outputs when using the `--csv` flag
+and a header line from `--csv-header`. To take some measurements manually with a simple sleep-loop:
 
-    make plot SMOOTH=bezier
+    speedtest-cli --csv-header > results.csv
+    while true; do speedtest-cli --csv | tee -a results.csv; sleep 600; done
+    ^C
 
-![example bezier plot](assets/example_bezier.png)
+Afterwards plot the results to a PNG picture with:
 
-### direct speedtest-cli usage
+    gnuplot -c plotscript results.csv plot.png
 
-You can also use a simple and naiive `sleep`-loop to collect measurements
-without using the Docker container at all:
-
-    make direct MINUTES=5
-
-This will run a simple loop which sleeps for MINUTES * 60 seconds between
-measurements. To be useful, you'll need to let this command run for a couple
-of hours, thus I suggest you use [tmux](https://github.com/tmux/tmux) or
-[screen](https://www.gnu.org/software/screen/) to detach your tty while it does.
-
-You can also use any other other method to build your `results.csv`, it just
-needs to conform to the expected format with a header and one measurement per
-line. Afterwards plot the image as shown above:
-
-    make plot
-
-### cleanup
-
-Afterwards you can remove the container and clean the result files when they
-are not needed anymore:
-
-    make remove
-    make clean
-
-## license
+## LICENSE
 
 Copyright (c) 2019 Anton Semjonov
 Licensed under the MIT License

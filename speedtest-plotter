@@ -55,12 +55,6 @@ def take_measurement():
   table.insert(r)
   print(r)
 
-# retrieve request parameters
-def request_params(request):
-  limit = flask.request.args.get("limit", None) or 32768
-  after = flask.request.args.get("after", None)
-  return (limit, after)
-
 # retrieve measurements from table applying optional filters
 def retrieve_measurements(limit, after):
 
@@ -80,6 +74,12 @@ def flask_server():
   print(" * Connected database: {}".format(args.database))
   app = flask.Flask("speedtest", root_path="./")
   app.env = "development"
+
+  # retrieve request parameters for retrieval
+  def request_params(request):
+    limit = flask.request.args.get("limit", None) or 32768
+    after = flask.request.args.get("after", None)
+    return (limit, after)
 
   # homepage with rendered results
   @app.route("/")

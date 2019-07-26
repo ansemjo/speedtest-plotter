@@ -37,6 +37,6 @@ set terminal png size 1280, 720
 set output ARG2
 plot \
   for [col=7:8] ARG1 using 4:col notitle with steps, \
-  ARG1 using 4:6 title gprintf("Ping (... %.0f ms)", avgping(x)) axes x1y2 with points, \
-  ARG1 using 4:7 title gprintf("Download (... %.2s %cBit/s)", avgdown(x)) sm bezier, \
-  ARG1 using 4:8 title gprintf("Upload (... %.2s %cBit/s)", avgup(x)) sm bezier, \
+  ARG1 using 4:6 title gprintf("Ping (≈ %.0f ms)", avgping(x)) axes x1y2 with points, \
+  ARG1 using 4:7 title gprintf("Download (≈ %.2s %cBit/s)", avgdown(x)) sm bezier, \
+  ARG1 using 4:8 title gprintf("Upload (≈ %.2s %cBit/s)", avgup(x)) sm bezier, \

@@ -16,7 +16,7 @@ RUN apk add --no-cache --virtual build-deps musl-dev gcc postgresql-dev \
 # default cron interval
 ENV MINUTES="15"
 
-# listening port
+# listening port, set to empty string for no webserver
 ENV PORT="8000"
 
 # database uri (sqlalchemy uri)

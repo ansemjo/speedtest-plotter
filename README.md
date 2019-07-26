@@ -2,7 +2,8 @@
 
 This is a Docker container with the tool
 [speedtest-cli](https://github.com/sivel/speedtest-cli) inside, which
-uses a crontab to log speedtest results in csv format every 15 minutes.
+uses a crontab to log speedtest results in csv format every couple minutes
+and serves the plotted results with a simple flask app.
 
 ## installation
 
@@ -101,5 +102,5 @@ are not needed anymore:
 
 ## license
 
-Copyright (c) 2018 Anton Semjonov
+Copyright (c) 2019 Anton Semjonov
 Licensed under the MIT License

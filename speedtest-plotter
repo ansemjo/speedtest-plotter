@@ -57,7 +57,7 @@ def take_measurement():
 def retrieve_measurements(request):
 
   # retrieve request arguments
-  limit = request.args.get("limit", None) or 4096
+  limit = request.args.get("limit", None) or 32768
   after = request.args.get("after", None)
 
   # maybe use a query to filter by timestamp

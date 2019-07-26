@@ -25,6 +25,7 @@ set linetype 4 lw 3 lc rgb "navy"               # smooth download
 set linetype 5 lw 3 lc rgb "orange-red"         # smooth upload
 
 # calculate averages per dimension
+set fit quiet logfile "/dev/null"
 avgping(x) = ping
 fit avgping(x) ARG1 using 4:6 via ping
 avgdown(x) = down

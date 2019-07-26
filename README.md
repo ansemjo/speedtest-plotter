@@ -11,6 +11,12 @@ The results can optionally be displayed through a simple Flask webserver.
 ## USAGE
 
 ### CONTAINER
+<a href="https://hub.docker.com/r/ansemjo/speedtest/builds">
+
+![Docker Cloud Automated build](https://img.shields.io/docker/cloud/automated/ansemjo/speedtest)
+![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/ansemjo/speedtest)
+
+</a>
 
 The main distribution method is the automatically built container at
 [ansemjo/speedtest](https://hub.docker.com/r/ansemjo/speedtest).

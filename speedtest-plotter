@@ -86,9 +86,18 @@ def flask_server():
     after = flask.request.args.get("after", None)
     return (limit, after)
 
+  # scale number as mbit/s
+  @app.template_filter("mbits")
+  def to_mbits(d, fact=1_000_000, unit="MBit/s"):
+    scaled = float(d) / fact
+    return f"{scaled:.2f} {unit}"
+
   # homepage with rendered results
   @app.route("/")
   def home():
+    limit, after = request_params(flask.request)
+    rows = retrieve_measurements(limit, after)
+    last = [r for r in rows][0]
 
     TEMPLATE = """
       <!DOCTYPE html>
@@ -120,6 +129,12 @@ def flask_server():
               After: <input type="text" name="after" value="{{ args.after }}" title="limit to results after this date">
               <input type="submit" value="Apply">
             </form>
+            <p>
+              Measurement at {{ last['Timestamp'] }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
+              Download: {{ last['Download'] | mbits }},
+              Upload: {{ last['Upload'] | mbits }},
+              Ping: {{ "%.1f" | format( last['Ping'] | float ) }} ms
+            </p>
             <a href="/results.csv?limit={{ args.limit }}&after={{ args.after }}">
               <img src="/results.png?limit={{ args.limit }}&after={{ args.after }}">
             </a>
@@ -127,7 +142,7 @@ def flask_server():
         </body>
       </html>
     """
-    return flask.render_template_string(TEMPLATE, args=flask.request.args)
+    return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last)
 
   # return rendered plot picture
   @app.route("/results.png")

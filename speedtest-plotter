@@ -72,6 +72,10 @@ def retrieve_measurements(limit, after):
   else:
     return db.query("SELECT * FROM speedtest WHERE \"Timestamp\" IS NOT NULL ORDER BY \"Timestamp\" DESC LIMIT :li", li=limit)
 
+# just return the total number of rows
+def total_measurements():
+  return len(table)
+
 def flask_server():
 
   # initialize flask
@@ -98,6 +102,7 @@ def flask_server():
     limit, after = request_params(flask.request)
     rows = retrieve_measurements(limit, after)
     last = [r for r in rows][0]
+    total = total_measurements()
 
     TEMPLATE = """
       <!DOCTYPE html>
@@ -125,7 +130,8 @@ def flask_server():
         <body>
           <center>
             <form action="/" method="get">
-              Limit: <input type="number" name="limit" value="{{ args.limit }}" title="limit to n results">
+              Limit: <input type="number" name="limit" value="{{ limit }}" title="limit to n results">
+              / <span title="total number of measurements">{{ total }}</span>,
               After: <input type="text" name="after" value="{{ args.after }}" title="limit to results after this date">
               <input type="submit" value="Apply">
             </form>
@@ -142,7 +148,7 @@ def flask_server():
         </body>
       </html>
     """
-    return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last)
+    return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, limit=limit)
 
   # return rendered plot picture
   @app.route("/results.png")

@@ -10,6 +10,7 @@ import dataset
 # default / environment variables
 DATABASE = os.environ.get("DATABASE", "sqlite:////data/speedtest.db")
 PORT = os.environ.get("PORT", "8000")
+SERVERID = os.environ.get("SERVERID", None)
 
 # commandline parser
 p = argparse.ArgumentParser()
@@ -17,6 +18,7 @@ p.add_argument("-d", dest="database", help="database connection uri (env:DATABAS
 p.add_argument("-p", dest="port", help="port to run application server on (env:PORT)", default=PORT)
 p.add_argument("-l", dest="limit", help="limit number of results when dumping", default=32768)
 p.add_argument("-a", dest="after", help="start dump after this date", default=None)
+p.add_argument("-s", dest="serverid", help="take measurements against specific speedtest.net server", default=SERVERID)
 p.add_argument("--debug", help="enable flask debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump"], help="start webserver, take a measurement or dump results")
 args = p.parse_args()
@@ -49,7 +51,9 @@ def csvout(rows):
 
 # take a new measurement with speedtest-cli
 def take_measurement():
-  res = run(["speedtest-cli", "--csv"])
+  cmd = ["speedtest-cli", "--csv"]
+  if args.serverid: cmd += ["--server", args.serverid]
+  res = run(cmd)
   if res.returncode != 0:
     print(res.stderr, file=sys.stderr)
   r = parse_result(res.stdout)

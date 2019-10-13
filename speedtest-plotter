@@ -17,6 +17,7 @@ p.add_argument("-d", dest="database", help="database connection uri (env:DATABAS
 p.add_argument("-p", dest="port", help="port to run application server on (env:PORT)", default=PORT)
 p.add_argument("-l", dest="limit", help="limit number of results when dumping", default=32768)
 p.add_argument("-a", dest="after", help="start dump after this date", default=None)
+p.add_argument("--debug", help="enable flask debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump"], help="start webserver, take a measurement or dump results")
 args = p.parse_args()
 
@@ -152,7 +153,7 @@ def flask_server():
     except Exception as e:
       return flask.Response(str(e), mimetype="text/plain", status=500)
 
-  app.run(threaded=False, port=args.port, host="0.0.0.0")
+  app.run(threaded=False, port=args.port, host="0.0.0.0", debug=args.debug)
 
 # ---------- main() ----------
 try:

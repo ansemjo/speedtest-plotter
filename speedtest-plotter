@@ -85,7 +85,7 @@ def flask_server():
   app.env = "development"
 
   # retrieve request parameters for retrieval
-  def request_params(request, limit=1000):
+  def request_params(request, limit=1344): # ~ two weeks with a 15 min timer
     limit = flask.request.args.get("limit", None) or limit
     after = flask.request.args.get("after", None)
     return (limit, after)
@@ -169,7 +169,7 @@ def flask_server():
   @app.route("/results.csv")
   def results():
     try:
-      limit, after = request_params(flask.request, 32768)
+      limit, after = request_params(flask.request, 32768) # 2^15 and a little more than a year with a 15 min timer
       rows = retrieve_measurements(limit, after)
       data = csvout(rows)
       out = data.read()

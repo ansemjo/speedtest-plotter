@@ -20,7 +20,7 @@ p.add_argument("-l", dest="limit", help="limit number of results when dumping", 
 p.add_argument("-a", dest="after", help="start dump after this date", default=None)
 p.add_argument("-s", dest="serverid", help="take measurements against specific speedtest.net server", default=SERVERID)
 p.add_argument("--debug", help="enable flask debugging", action="store_true")
-p.add_argument("command", choices=["serve", "measure", "dump"], help="start webserver, take a measurement or dump results")
+p.add_argument("command", choices=["serve", "measure", "dump", "import"], help="start webserver, take a measurement, dump results to csv or reimport csv data")
 args = p.parse_args()
 
 # connect to database
@@ -59,6 +59,15 @@ def take_measurement():
   r = parse_result(res.stdout)
   table.insert(r)
   print(r)
+
+# import measurements from stdin
+def import_measurements(f):
+  cr = csv.DictReader(f, fieldnames=FIELDNAMES)
+  for line in cr:
+    if list(line.values()) == list(FIELDNAMES):
+      continue # skip header
+    print(line)
+    table.insert(line)
 
 # retrieve measurements from table applying optional filters
 def retrieve_measurements(limit, after):
@@ -186,6 +195,8 @@ try:
     flask_server()
   elif args.command == "measure":
     take_measurement()
+  elif args.command == "import":
+    import_measurements(sys.stdin)
   else:
       rows = retrieve_measurements(args.limit, args.after)
       data = csvout(rows)

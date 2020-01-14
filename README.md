@@ -58,6 +58,12 @@ To dump the results as CSV from a running container use the `dump` command:
 
     docker exec $containerid speedtest-plotter dump > results.csv
 
+To reimport a previous dump in a fresh container use `import`:
+
+    docker exec $containerid speedtest-plotter import < results.csv
+
+This can also be used to import results obtained manually with `speedtest-cli`.
+
 ### PYTHON SCRIPT
 
 You can use the Python script by itself locally, too. First install the requirements:

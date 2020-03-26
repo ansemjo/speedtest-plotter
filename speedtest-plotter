@@ -3,7 +3,7 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-import subprocess, csv, tempfile, sys, argparse, os
+import subprocess, csv, tempfile, sys, argparse, os, io
 import dateutil.parser
 import dataset
 
@@ -34,9 +34,13 @@ def run(cmd, stdin=None):
 # csv column names
 FIELDNAMES = ("Server ID", "Sponsor", "Server Name", "Timestamp", "Distance", "Ping", "Download", "Upload", "Share", "IP Address")
 
-# parse a csv result from speedtest-cli to dict
-def parse_result(result):
-  return dict(zip(FIELDNAMES, result.decode().strip().split(',')))
+# parse csv results from speedtest-cli to dicts
+def parse_measurements(f):
+  cr = csv.DictReader(f, fieldnames=FIELDNAMES)
+  for line in cr:
+    if list(line.values()) == list(FIELDNAMES):
+      continue # skip header
+    yield line
 
 # output stored database rows as spooled csv file with header
 def csvout(rows):
@@ -56,16 +60,13 @@ def take_measurement():
   res = run(cmd)
   if res.returncode != 0:
     print(res.stderr, file=sys.stderr)
-  r = parse_result(res.stdout)
+  r = next(parse_measurements(io.StringIO(res.stdout.decode())))
   table.insert(r)
   print(r)
 
 # import measurements from stdin
 def import_measurements(f):
-  cr = csv.DictReader(f, fieldnames=FIELDNAMES)
-  for line in cr:
-    if list(line.values()) == list(FIELDNAMES):
-      continue # skip header
+  for line in parse_measurements(f):
     print(line)
     table.insert(line)
 

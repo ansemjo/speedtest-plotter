@@ -108,56 +108,63 @@ def flask_server():
   # homepage with rendered results
   @app.route("/")
   def home():
-    limit, after = request_params(flask.request)
-    rows = retrieve_measurements(limit, after)
-    last = [r for r in rows][0]
-    total = total_measurements()
+    try:
+      limit, after = request_params(flask.request)
+      rows = retrieve_measurements(limit, after)
+      last = [r for r in rows][0]
+      total = total_measurements()
 
-    TEMPLATE = """
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Speedtest Plot</title>
-          <style>
-            input {
-              box-sizing: border-box;
-              border: 1px solid #000;
-              border-radius: 3px;
-              padding: 0.5em;
-            }
-            html {
-              font-family: monospace;
-            }
-            img {
-              border: 1px solid black;
-              margin: 1em;
-              max-width: calc(100% - 2em);
-            }
-          </style>
-        </head>
-        <body>
-          <center>
-            <form action="/" method="get">
-              Limit: <input type="number" name="limit" value="{{ limit }}" title="limit to n results">
-              / <span title="total number of measurements">{{ total }}</span>,
-              After: <input type="text" name="after" value="{{ after }}" title="limit to results after this date">
-              <input type="submit" value="Apply">
-            </form>
-            <p>
-              Measurement at {{ last['Timestamp'] }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
-              Download: {{ last['Download'] | mbits }},
-              Upload: {{ last['Upload'] | mbits }},
-              Ping: {{ "%.1f" | format( last['Ping'] | float ) }} ms
-            </p>
-            <a href="/results.csv?limit={{ limit }}&after={{ after }}">
-              <img src="/results.png?limit={{ limit }}&after={{ after }}">
-            </a>
-          </center>
-        </body>
-      </html>
-    """
-    return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, limit=limit, after=after or "")
+      TEMPLATE = """
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Speedtest Plot</title>
+            <style>
+              input {
+                box-sizing: border-box;
+                border: 1px solid #000;
+                border-radius: 3px;
+                padding: 0.5em;
+              }
+              html {
+                font-family: monospace;
+              }
+              img {
+                border: 1px solid black;
+                margin: 1em;
+                max-width: calc(100% - 2em);
+              }
+            </style>
+          </head>
+          <body>
+            <center>
+              <form action="/" method="get">
+                Limit: <input type="number" name="limit" value="{{ limit }}" title="limit to n results">
+                / <span title="total number of measurements">{{ total }}</span>,
+                After: <input type="text" name="after" value="{{ after }}" title="limit to results after this date">
+                <input type="submit" value="Apply">
+              </form>
+              <p>
+                Measurement at {{ last['Timestamp'] }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
+                Download: {{ last['Download'] | mbits }},
+                Upload: {{ last['Upload'] | mbits }},
+                Ping: {{ "%.1f" | format( last['Ping'] | float ) }} ms
+              </p>
+              <a href="/results.csv?limit={{ limit }}&after={{ after }}">
+                <img src="/results.png?limit={{ limit }}&after={{ after }}">
+              </a>
+            </center>
+          </body>
+        </html>
+      """
+      return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, limit=limit, after=after or "")
+    except Exception as e:
+      err = str(e)
+      if "no such table: speedtest" in err:
+        err = "No measurements taken yet!\n" + err
+      print(err)
+      return flask.Response(err, mimetype="text/plain", status=500)
 
   # return rendered plot picture
   @app.route("/results.png")

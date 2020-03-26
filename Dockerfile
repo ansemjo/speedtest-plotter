@@ -24,6 +24,7 @@ ENV DATABASE="sqlite:////data/speedtests.db"
 
 # copy entrypoint and scripts
 WORKDIR /opt/speedtest-plotter
+ENV PATH="/opt/speedtest-plotter:${PATH}"
 COPY entrypoint.sh /entrypoint.sh
 COPY plotscript speedtest-plotter ./
 

@@ -111,7 +111,8 @@ def flask_server():
     try:
       limit, after = request_params(flask.request)
       rows = retrieve_measurements(limit, after)
-      last = [r for r in rows][0]
+      rows = [r for r in rows]
+      last = rows[0]
       total = total_measurements()
 
       TEMPLATE = """
@@ -152,13 +153,17 @@ def flask_server():
                 Ping: {{ "%.1f" | format( last['Ping'] | float ) }} ms
               </p>
               <a href="/results.csv?limit={{ limit }}&after={{ after }}">
+                {% if rows < 2 %}
+                <span>Not enough measurements for a plot (yet). Here's a CSV instead.</span>
+                {% else %}
                 <img src="/results.png?limit={{ limit }}&after={{ after }}">
+                {% endif %}
               </a>
             </center>
           </body>
         </html>
       """
-      return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, limit=limit, after=after or "")
+      return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, limit=limit, after=after or "", rows=len(rows))
     except Exception as e:
       err = str(e)
       if "no such table: speedtest" in err:

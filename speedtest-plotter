@@ -3,8 +3,8 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-import subprocess, csv, tempfile, sys, argparse, os, io
-import dateutil.parser
+import subprocess, csv, json, tempfile, sys, argparse, os, io
+import dateutil.parser, datetime
 import dataset
 
 # default / environment variables
@@ -42,6 +42,23 @@ def parse_measurements(f):
       continue # skip header
     yield line
 
+# parse the json output of taganaka/SpeedTest
+def parse_json_measurement(s):
+  js = json.loads(s)
+  ms = dict(zip(FIELDNAMES, (
+    "0",
+    js.get("server", {}).get("sponsor", ""),
+    js.get("server", {}).get("name", ""),
+    datetime.datetime.utcnow().isoformat(),
+    js.get("serber", {}).get("distance", ""),
+    js.get("ping", "0"),
+    js.get("download", "0"),
+    js.get("upload", "0"),
+    js.get("share", ""),
+    js.get("client", {}).get("ip", ""),
+  )))
+  return ms
+
 # output stored database rows as spooled csv file with header
 def csvout(rows):
   f = tempfile.SpooledTemporaryFile(mode="wt+")
@@ -55,20 +72,19 @@ def csvout(rows):
 
 # take a new measurement with speedtest-cli
 def take_measurement():
-  cmd = ["speedtest-cli", "--csv"]
-  if args.serverid: cmd += ["--server", args.serverid]
-  res = run(cmd)
+  res = run(["SpeedTest", "--output", "json"])
   if res.returncode != 0:
     print(res.stderr, file=sys.stderr)
-  r = next(parse_measurements(io.StringIO(res.stdout.decode())))
+  r = parse_json_measurement(res.stdout.decode())
   table.insert(r)
   print(r)
 
-# import measurements from stdin
-def import_measurements(f):
-  for line in parse_measurements(f):
-    print(line)
-    table.insert(line)
+# import a measurement from stdin
+def import_measurement(f):
+  s = f.read()
+  r = parse_json_measurement(s)
+  table.insert(r)
+  print(r)
 
 # retrieve measurements from table applying optional filters
 def retrieve_measurements(limit, after):
@@ -209,7 +225,7 @@ try:
   elif args.command == "measure":
     take_measurement()
   elif args.command == "import":
-    import_measurements(sys.stdin)
+    import_measurement(sys.stdin)
   else:
       rows = retrieve_measurements(args.limit, args.after)
       data = csvout(rows)

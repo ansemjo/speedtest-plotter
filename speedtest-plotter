@@ -50,7 +50,7 @@ def parse_json_measurement(s):
     js.get("server", {}).get("sponsor", ""),
     js.get("server", {}).get("name", ""),
     datetime.datetime.utcnow().isoformat(),
-    js.get("serber", {}).get("distance", ""),
+    js.get("server", {}).get("distance", ""),
     js.get("ping", "0"),
     js.get("download", "0"),
     js.get("upload", "0"),

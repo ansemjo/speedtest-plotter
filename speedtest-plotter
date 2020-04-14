@@ -152,6 +152,7 @@ def flask_server():
                 border: 1px solid black;
                 margin: 1em;
                 max-width: calc(100% - 2em);
+                max-height: 80vh;
               }
             </style>
           </head>
@@ -173,7 +174,7 @@ def flask_server():
                 {% if rows < 2 %}
                 <span>Not enough measurements for a plot (yet). Here's a CSV instead.</span>
                 {% else %}
-                <img src="/results.png?limit={{ limit }}&after={{ after }}">
+                <img src="/results.svg?limit={{ limit }}&after={{ after }}">
                 {% endif %}
               </a>
             </center>
@@ -189,7 +190,7 @@ def flask_server():
       return flask.Response(err, mimetype="text/plain", status=500)
 
   # return rendered plot picture
-  @app.route("/results.png")
+  @app.route("/results.svg")
   def render():
     try:
       limit, after = request_params(flask.request)
@@ -199,7 +200,7 @@ def flask_server():
       data.close()
       if plot.returncode != 0:
         raise ValueError(plot.stderr.decode())
-      return flask.Response(plot.stdout, mimetype="image/png")
+      return flask.Response(plot.stdout, mimetype="image/svg+xml")
     except Exception as e:
       return flask.Response(str(e), mimetype="text/plain", status=500)
 

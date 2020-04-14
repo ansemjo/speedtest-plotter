@@ -34,7 +34,7 @@ avgup(x) = up
 fit avgup(x) ARG1 using 4:8 via up
 
 # plot the results
-set terminal png size 1280, 720
+set terminal svg size 1280, 720 dynamic
 set output ARG2
 plot \
   for [col=7:8] ARG1 using 4:col notitle with steps, \

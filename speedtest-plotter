@@ -10,7 +10,7 @@ import dataset
 # default / environment variables
 DATABASE = os.environ.get("DATABASE", "sqlite:////data/speedtest.db")
 PORT = os.environ.get("PORT", "8000")
-SERVERID = os.environ.get("SERVERID", None)
+SERVER = os.environ.get("TESTSERVER", None)
 
 # commandline parser
 p = argparse.ArgumentParser()
@@ -18,7 +18,7 @@ p.add_argument("-d", dest="database", help="database connection uri (env:DATABAS
 p.add_argument("-p", dest="port", help="port to run application server on (env:PORT)", default=PORT)
 p.add_argument("-l", dest="limit", help="limit number of results when dumping", default=32768)
 p.add_argument("-a", dest="after", help="start dump after this date", default=None)
-p.add_argument("-s", dest="serverid", help="take measurements against specific speedtest.net server", default=SERVERID)
+p.add_argument("-s", dest="server", help="take measurements against specific speedtest.net server", default=SERVER)
 p.add_argument("--debug", help="enable flask debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump", "import"], help="start webserver, take a measurement, dump results to csv or reimport csv data")
 args = p.parse_args()
@@ -27,64 +27,65 @@ args = p.parse_args()
 db = dataset.connect(args.database)
 table = db["speedtest"]
 
-# run a command and capture output
+# run a subcommand and capture its output
 def run(cmd, stdin=None):
   return subprocess.run(cmd, capture_output=True, stdin=stdin)
 
-# csv column names
-FIELDNAMES = ("Server ID", "Sponsor", "Server Name", "Timestamp", "Distance", "Ping", "Download", "Upload", "Share", "IP Address")
+# column names in speedtest-cli csv output
+FIELDNAMES = ("Server ID", "Sponsor", "Server Name", "Timestamp", "Distance",
+  "Ping", "Download", "Upload", "Share", "IP Address")
 
-# parse csv results from speedtest-cli to dicts
-def parse_measurements(f):
-  cr = csv.DictReader(f, fieldnames=FIELDNAMES)
-  for line in cr:
-    if list(line.values()) == list(FIELDNAMES):
-      continue # skip header
-    yield line
+# custom exception when SpeedTest had an error
+class SpeedTestError(Exception): pass
 
 # parse the json output of taganaka/SpeedTest
-def parse_json_measurement(s):
-  js = json.loads(s)
-  ms = dict(zip(FIELDNAMES, (
+def parse_measurement(js):
+  if (err := js.get("error")) is not None:
+    raise SpeedTestError(err)
+  server, client = js.get("server", {}), js.get("client", {})
+  return dict(zip(FIELDNAMES, (
     "0",
-    js.get("server", {}).get("sponsor", ""),
-    js.get("server", {}).get("name", ""),
+    server.get("sponsor", ""),
+    server.get("name", ""),
     datetime.datetime.utcnow().isoformat(),
-    js.get("server", {}).get("distance", ""),
-    js.get("ping", "0"),
-    js.get("download", "0"),
-    js.get("upload", "0"),
+    server.get("distance", ""),
+    js["ping"],
+    js["download"],
+    js["upload"],
     js.get("share", ""),
-    js.get("client", {}).get("ip", ""),
+    client.get("ip", ""),
   )))
-  return ms
 
-# output stored database rows as spooled csv file with header
-def csvout(rows):
-  f = tempfile.SpooledTemporaryFile(mode="wt+")
-  wr = csv.DictWriter(f, fieldnames=FIELDNAMES)
+# take a new measurement with speedtest-cli
+def take_measurement():
+  cmd = ["SpeedTest", "--output", "json"]
+  if args.server:
+    cmd += ["--test-server", args.server]
+  res = run(cmd)
+  if res.returncode != 0:
+    raise SpeedTestError(res.stderr.decode())
+  r = parse_measurement(json.loads(res.stdout))
+  table.insert(r)
+  print(r)
+
+# parse csv results from speedtest-cli format to dict generator
+def csv_reader(reader):
+  cr = csv.DictReader(reader, fieldnames=FIELDNAMES)
+  for line in cr:
+    if list(line.values()) == list(FIELDNAMES):
+      continue # skip header line
+    yield line
+
+# output stored database rows to writer as speedtest-cli csv with header
+def csv_writer(rows, writer=None):
+  if writer is None:
+    writer = tempfile.SpooledTemporaryFile(mode="wt+")
+  wr = csv.DictWriter(writer, fieldnames=FIELDNAMES)
   wr.writeheader()
   for row in sorted(rows, key=lambda r: r["id"]):
     del row["id"]
     wr.writerow(row)
-  f.seek(0)
-  return f
-
-# take a new measurement with speedtest-cli
-def take_measurement():
-  res = run(["SpeedTest", "--output", "json"])
-  if res.returncode != 0:
-    print(res.stderr, file=sys.stderr)
-  r = parse_json_measurement(res.stdout.decode())
-  table.insert(r)
-  print(r)
-
-# import a measurement from stdin
-def import_measurement(f):
-  s = f.read()
-  r = parse_json_measurement(s)
-  table.insert(r)
-  print(r)
+  return writer
 
 # retrieve measurements from table applying optional filters
 def retrieve_measurements(limit, after):
@@ -127,8 +128,7 @@ def flask_server():
   def home():
     try:
       limit, after = request_params(flask.request)
-      rows = retrieve_measurements(limit, after)
-      rows = [r for r in rows]
+      rows = list(retrieve_measurements(limit, after))
       last = rows[0]
       total = total_measurements()
 
@@ -182,6 +182,7 @@ def flask_server():
         </html>
       """
       return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, limit=limit, after=after or "", rows=len(rows))
+    
     except Exception as e:
       err = str(e)
       if "no such table: speedtest" in err:
@@ -189,13 +190,19 @@ def flask_server():
       print(err)
       return flask.Response(err, mimetype="text/plain", status=500)
 
+  # retrieve spooled measurements with request params
+  def spool_measurements():
+    limit, after = request_params(flask.request)
+    rows = retrieve_measurements(limit, after)
+    spool = csv_writer(rows)
+    spool.seek(0)
+    return spool
+
   # return rendered plot picture
   @app.route("/results.svg")
   def render():
     try:
-      limit, after = request_params(flask.request)
-      rows = retrieve_measurements(limit, after)
-      data = csvout(rows)
+      data = spool_measurements()
       plot = run(["gnuplot", "-c", "plotscript", "/dev/stdin", "/dev/stdout"], stdin=data)
       data.close()
       if plot.returncode != 0:
@@ -208,12 +215,8 @@ def flask_server():
   @app.route("/results.csv")
   def results():
     try:
-      limit, after = request_params(flask.request, 32768) # 2^15 and a little more than a year with a 15 min timer
-      rows = retrieve_measurements(limit, after)
-      data = csvout(rows)
-      out = data.read()
-      data.close()
-      return flask.Response(out, mimetype="text/plain")
+      data = spool_measurements()
+      return flask.Response(data, mimetype="text/plain")
     except Exception as e:
       return flask.Response(str(e), mimetype="text/plain", status=500)
 
@@ -221,17 +224,25 @@ def flask_server():
 
 # ---------- main() ----------
 try:
+
   if args.command == "serve":
     flask_server()
+  
   elif args.command == "measure":
     take_measurement()
+  
   elif args.command == "import":
-    import_measurement(sys.stdin)
+    for m in csv_reader(sys.stdin):
+      table.insert(m)
+      print(m)
+  
+  elif args.command == "dump":
+    rows = retrieve_measurements(args.limit, args.after)
+    csv_writer(rows, sys.stdout)
+  
   else:
-      rows = retrieve_measurements(args.limit, args.after)
-      data = csvout(rows)
-      print(data.read(), end="")
-      data.close()
+    raise ValueError("unknown command: " + args.command)
+
 except Exception as e:
   print(e)
   exit(1)

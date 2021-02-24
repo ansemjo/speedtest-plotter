@@ -1,12 +1,12 @@
 # speedtest-plotter
 
 This is a collection of scripts, which takes internet speedtest measurements
-with [speedtest-cli](https://github.com/sivel/speedtest-cli) and plot them
-with [gnuplot](http://gnuplot.sourceforge.net). A crontab schedule can be used
+against the speedtest.net network with [taganaka/SpeedTest](https://github.com/taganaka/SpeedTest) and plot them
+with [gnuplot](http://gnuplot.sourceforge.net). A crontab schedule is used
 to automate measurements every couple of minutes and save them to a database.
-The results can optionally be displayed through a simple Flask webserver.
+The results can be displayed through a simple Flask webserver.
 
-![example plot of speedtest results](example.png)
+![example plot of speedtest results](assets/example.png)
 
 ## USAGE
 
@@ -47,12 +47,12 @@ an entirely custom cron schedule like "four times a day":
 
     docker run -d -p 8000:8000 -e SCHEDULE="0 3,9,15,21 * * *" ansemjo/speedtest
 
-The webserver is a single-threaded Flask application, which may not be suitable
+The webserver is a single-threaded Flask application and pipes the data to gnuplot in a subprocess, which may not be suitable
 for production usage. To disable the webserver completely set the `PORT` environment
 variable to an empty string. This will only take measurements and save them to the
 database.
 
-    docker run -d -e PORT= -v speedtests:/data ansemjo/speedtest
+    docker run -d -e PORT="" -v speedtests:/data ansemjo/speedtest
 
 To dump the results as CSV from a running container use the `dump` command:
 

@@ -19,9 +19,6 @@ FROM python:3-alpine
 # install necessary packages and fonts
 RUN apk add --no-cache gnuplot ttf-droid libcurl libxml2 libstdc++ libgcc
 
-# copy build binary from first stage
-COPY --from=compiler /build/SpeedTest /usr/local/bin/SpeedTest
-
 # copy requirements file and install with pip
 COPY requirements.txt /requirements.txt
 RUN apk add --no-cache --virtual build-deps musl-dev gcc postgresql-dev \
@@ -38,11 +35,20 @@ ENV PORT="8000"
 # database uri (sqlalchemy uri)
 ENV DATABASE="sqlite:////data/speedtests.db"
 
+# copy built binary from first stage
+COPY --from=compiler /build/SpeedTest /usr/local/bin/SpeedTest
+
 # copy entrypoint and scripts
 WORKDIR /opt/speedtest-plotter
 ENV PATH="/opt/speedtest-plotter:${PATH}"
-COPY entrypoint.sh /entrypoint.sh
+COPY container/entrypoint.sh /entrypoint.sh
 COPY plotscript speedtest-plotter ./
 
+# wrapper script to easy docker exec usage
+COPY container/wrapper /usr/local/bin/dump
+COPY container/wrapper /usr/local/bin/import
+COPY container/wrapper /usr/local/bin/measure
+
 # start with entrypoint which exec's crond
-CMD ["/bin/ash", "/entrypoint.sh"]
+ENTRYPOINT ["/bin/ash", "/entrypoint.sh"]
+CMD ["cron"]

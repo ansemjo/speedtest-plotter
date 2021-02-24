@@ -182,7 +182,7 @@ def flask_server():
         </html>
       """
       return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, limit=limit, after=after or "", rows=len(rows))
-    
+
     except Exception as e:
       err = str(e)
       if "no such table: speedtest" in err:
@@ -227,19 +227,19 @@ try:
 
   if args.command == "serve":
     flask_server()
-  
+
   elif args.command == "measure":
     take_measurement()
-  
+
   elif args.command == "import":
     for m in csv_reader(sys.stdin):
       table.insert(m)
       print(m)
-  
+
   elif args.command == "dump":
     rows = retrieve_measurements(args.limit, args.after)
     csv_writer(rows, sys.stdout)
-  
+
   else:
     raise ValueError("unknown command: " + args.command)
 

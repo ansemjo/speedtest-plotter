@@ -17,7 +17,7 @@ RUN git clone https://github.com/taganaka/SpeedTest.git . \
 FROM python:3-alpine
 
 # install necessary packages and fonts
-RUN apk add --no-cache gnuplot ttf-droid libcurl libxml2 libstdc++ libgcc
+RUN apk add --no-cache gnuplot ttf-droid libcurl libxml2 libstdc++ libgcc tini
 
 # copy requirements file and install with pip
 COPY requirements.txt /requirements.txt
@@ -50,5 +50,5 @@ COPY container/wrapper /usr/local/bin/import
 COPY container/wrapper /usr/local/bin/measure
 
 # start with entrypoint which exec's crond
-ENTRYPOINT ["/bin/ash", "/entrypoint.sh"]
+ENTRYPOINT ["/sbin/tini", "-wg", "--", "/bin/ash", "/entrypoint.sh"]
 CMD ["cron"]

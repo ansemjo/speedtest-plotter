@@ -25,7 +25,7 @@ if [[ $1 == cron ]]; then
   fi
 
   # start crontab for regular tests
-  crond -f
+  exec crond -f
 
 else
 

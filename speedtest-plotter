@@ -3,7 +3,7 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-import subprocess, csv, json, tempfile, sys, argparse, os, io
+import subprocess, csv, json, tempfile, sys, argparse, os, io, signal
 import dateutil.parser, datetime
 import dataset
 
@@ -22,6 +22,12 @@ p.add_argument("-s", dest="server", help="take measurements against specific spe
 p.add_argument("--debug", help="enable flask debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump", "import"], help="start webserver, take a measurement, dump results to csv or reimport csv data")
 args = p.parse_args()
+
+# handle ctrl-c
+def quit(signum, time):
+  print(" quit.")
+  sys.exit(0)
+signal.signal(signal.SIGINT, quit)
 
 # connect to database
 db = dataset.connect(args.database)
@@ -186,7 +192,7 @@ def flask_server():
     except Exception as e:
       err = str(e)
       if "no such table: speedtest" in err:
-        err = "No measurements taken yet!\n" + err
+        err = "No measurements taken yet!\nPlease wait for cron to trigger a measurement or start one yourself with 'speedtest-plotter measure'.\n\n" + err
       print(err)
       return flask.Response(err, mimetype="text/plain", status=500)
 

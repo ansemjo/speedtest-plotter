@@ -1,0 +1,9 @@
+# python virtualenv
+venv/
+
+# temporary local databases
+*.db
+*.sqlite
+
+# visual studio code
+.vscode/

@@ -1,0 +1,10 @@
+#!/usr/bin/env ash
+# wrapper for speedtest-plotter to ease `docker exec` usage
+
+cmd="$(basename "$0")"
+if expr match "$cmd" "\(dump\|import\|measure\)" >/dev/null; then
+  exec speedtest-plotter "$cmd" "$@"
+fi
+
+echo "unknown wrapper command: $cmd" >&2
+exit 1

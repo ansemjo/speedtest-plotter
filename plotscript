@@ -7,12 +7,12 @@ set timestamp
 set xlabel "Measurement Date [UTC]"
 set xdata time
 set timefmt "%Y-%m-%dT%H:%M:%S.*Z"
-set xtics format "%Y-%m-%d\n%H:%M:%S" rotate by -40
+set xtics format "%Y-%m-%d\n%H:%M:%S" out
 set ylabel "Measured Speed"
-set ytics format "%.2s %cBit/s" nomirror
+set ytics format "%.2s %cBit/s" nomirror out
 set yrange [0:*]
 set y2label "Ping"
-set y2tics format "%.0f ms" nomirror
+set y2tics format "%.0f ms" nomirror out
 set y2range [0:*]
 set grid
 set datafile separator ","
@@ -34,7 +34,7 @@ avgup(x) = up
 fit avgup(x) ARG1 using 4:8 via up
 
 # plot the results
-set terminal png size 1280, 720
+set terminal svg size 1280, 720 dynamic
 set output ARG2
 plot \
   for [col=7:8] ARG1 using 4:col notitle with steps, \

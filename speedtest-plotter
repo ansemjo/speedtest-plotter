@@ -3,12 +3,12 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-import subprocess, csv, json, tempfile, sys, argparse, os, io, signal
+import subprocess, csv, json, tempfile, sys, argparse, os, io, signal, re
 import dateutil.parser, datetime
 import dataset
 
 # default / environment variables
-DATABASE = os.environ.get("DATABASE", "sqlite:////data/speedtest.db")
+DATABASE = os.environ.get("DATABASE", "sqlite:///speedtest.db")
 PORT = os.environ.get("PORT", "8000")
 SERVER = os.environ.get("TESTSERVER", None)
 
@@ -28,6 +28,10 @@ def quit(signum, time):
   print(" quit.")
   sys.exit(0)
 signal.signal(signal.SIGINT, quit)
+
+# if database argument has no dialect, assume sqlite
+if re.match(r"^\w+://", args.database) is None:
+  args.database = "sqlite:///" + args.database
 
 # connect to database
 db = dataset.connect(args.database)

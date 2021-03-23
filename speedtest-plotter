@@ -3,9 +3,9 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-import subprocess, csv, json, tempfile, sys, argparse, os, io, signal, re
-import dateutil.parser, datetime
+import subprocess, csv, json, tempfile, sys, argparse, os, io, signal, re, datetime
 import dataset
+from dateutil import parser as dateparser, tz
 
 # default / environment variables
 DATABASE = os.environ.get("DATABASE", "sqlite:///speedtest.db")
@@ -44,6 +44,23 @@ def run(cmd, stdin=None):
 # return current utc timestamp in isoformat
 def utctimestamp():
   return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+
+# get local timezone from TZ env
+localtz = tz.gettz()
+
+# transform a timestamp (assume utc) to local timezone (given in TZ env)
+def isoformat_to_local(then):
+  t = datetime.datetime.fromisoformat(then)
+  if t.tzinfo is None:
+    t = t.replace(tzinfo=datetime.timezone.utc)
+  return t.astimezone(localtz)
+
+# parse a possibly unqualified timestamp to utc for searching
+def parse_to_utc(then):
+  t = dateparser.parse(then)
+  if t.tzinfo is None:
+    t = t.replace(tzinfo=localtz)
+  return t.astimezone(datetime.timezone.utc)
 
 # column names in speedtest-cli csv output
 FIELDNAMES = ("Server ID", "Sponsor", "Server Name", "Timestamp", "Distance",
@@ -99,6 +116,7 @@ def csv_writer(rows, writer=None):
   wr.writeheader()
   for row in sorted(rows, key=lambda r: r["id"]):
     del row["id"]
+    row["Timestamp"] = isoformat_to_local(row["Timestamp"]).isoformat()
     wr.writerow(row)
   return writer
 
@@ -107,7 +125,7 @@ def retrieve_measurements(limit, after):
 
   # maybe use a query to filter by timestamp
   if after:
-    try: after = dateutil.parser.parse(after).isoformat()
+    try: after = parse_to_utc(after).isoformat()
     except Exception as e:
       raise ValueError("cannot parse argument as date: " + str(e))
     return db.query("SELECT * FROM speedtest WHERE \"Timestamp\" >= :ts ORDER BY \"Timestamp\" ASC LIMIT :li", ts=after, li=limit)
@@ -137,6 +155,11 @@ def flask_server():
   def to_mbits(d, fact=1_000_000, unit="MBit/s"):
     scaled = float(d) / fact
     return f"{scaled:.2f} {unit}"
+
+  # apply isoformat_to_local to timestamps
+  @app.template_filter("datefmt")
+  def to_local_datefmt(t):
+    return isoformat_to_local(t).replace(microsecond=0).strftime("%F %T %Z")
 
   # homepage with rendered results
   @app.route("/")
@@ -180,7 +203,7 @@ def flask_server():
                 <input type="submit" value="Apply">
               </form>
               <p>
-                Measurement at {{ last['Timestamp'] }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
+                Measurement at {{ last['Timestamp'] | datefmt }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
                 Download: {{ last['Download'] | mbits }},
                 Upload: {{ last['Upload'] | mbits }},
                 Ping: {{ "%d" | format( last['Ping'] | int ) }} ms

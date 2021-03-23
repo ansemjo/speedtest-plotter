@@ -3,8 +3,8 @@
 
 # metadata, labels, ranges, etc.
 set title "Speedtest Results\ngithub.com/ansemjo/speedtest-plotter"
-set timestamp
-set xlabel "Measurement Date [UTC]"
+set timestamp "plotted %F %T %Z"
+set xlabel "Measurement Date"
 set xdata time
 set timefmt "%Y-%m-%dT%H:%M:%S.*Z"
 set xtics format "%Y-%m-%d\n%H:%M:%S" out

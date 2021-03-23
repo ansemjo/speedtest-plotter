@@ -41,6 +41,10 @@ table = db["speedtest"]
 def run(cmd, stdin=None):
   return subprocess.run(cmd, capture_output=True, stdin=stdin)
 
+# return current utc timestamp in isoformat
+def utctimestamp():
+  return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+
 # column names in speedtest-cli csv output
 FIELDNAMES = ("Server ID", "Sponsor", "Server Name", "Timestamp", "Distance",
   "Ping", "Download", "Upload", "Share", "IP Address")
@@ -49,7 +53,7 @@ FIELDNAMES = ("Server ID", "Sponsor", "Server Name", "Timestamp", "Distance",
 class SpeedTestError(Exception): pass
 
 # parse the json output of taganaka/SpeedTest
-def parse_measurement(js):
+def parse_measurement(js, utcnow=utctimestamp()):
   if (err := js.get("error")) is not None:
     raise SpeedTestError(err)
   server, client = js.get("server", {}), js.get("client", {})
@@ -57,7 +61,7 @@ def parse_measurement(js):
     server.get("host", ""),
     server.get("sponsor", ""),
     server.get("name", ""),
-    datetime.datetime.utcnow().isoformat(),
+    utcnow,
     server.get("distance", ""),
     js["ping"],
     js["download"],
@@ -71,10 +75,11 @@ def take_measurement():
   cmd = ["SpeedTest", "--output", "json"]
   if args.server:
     cmd += ["--test-server", args.server]
+  utcnow = utctimestamp()
   res = run(cmd)
   if res.returncode != 0:
     raise SpeedTestError(res.stderr.decode())
-  r = parse_measurement(json.loads(res.stdout))
+  r = parse_measurement(json.loads(res.stdout), utcnow)
   table.insert(r)
   print(r)
 
@@ -178,7 +183,7 @@ def flask_server():
                 Measurement at {{ last['Timestamp'] }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
                 Download: {{ last['Download'] | mbits }},
                 Upload: {{ last['Upload'] | mbits }},
-                Ping: {{ "%.1f" | format( last['Ping'] | float ) }} ms
+                Ping: {{ "%d" | format( last['Ping'] | int ) }} ms
               </p>
               <a href="/results.csv?limit={{ limit }}&after={{ after }}">
                 {% if rows < 2 %}

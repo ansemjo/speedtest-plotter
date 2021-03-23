@@ -32,12 +32,18 @@ in `/data/speedtests.db` and run the webserver on port `8000`. Visit http://loca
 to look at the plotted results. (*Note: The smoothed bezier curves require at least two
 measurements and the image will stay blank otherwise. So you might have to wait a while first.*)
 
+Your local timezone can be set with the `TZ` environment variable and a string from
+`tzselect`. If none is set usually UTC is assumed. For example users in Japan should use:
+
+    docker run -d -p 8000:8000 -e TZ=Asia/Tokyo ansemjo/speedtest
+
 For data persistence, either mount a volume at `/data` to save the database file
 or set the environment variable `DATABASE` to an SQLAlchemy-compatible URI. A PostgreSQL
 URI might look like this:
 
     docker run -d \
       -p 8000:8000 \
+      -e TZ=Europe/Berlin \
       -e DATABASE=postgresql://user:password@hostname:5432/database' \
       ansemjo/speedtest
 
@@ -56,11 +62,15 @@ database.
 
 To dump the results as CSV from a running container use the `dump` command:
 
-    docker exec $containerid speedtest-plotter dump > results.csv
+    docker exec $containerid dump > results.csv
+
+To trigger a measurement manually use the `measure` command:
+
+    docker exec $containerid measure
 
 To reimport a previous dump in a fresh container use `import`:
 
-    docker exec $containerid speedtest-plotter import < results.csv
+    docker exec $containerid import < results.csv
 
 This can also be used to import results obtained manually with `speedtest-cli`.
 
@@ -77,7 +87,7 @@ Choose a database location and take any number of measurements:
 
 Then start the flask webserver to look at the results:
 
-    ./speedtest-plotter -d sqlite:///$PWD/measurements.db serve
+    TZ=Europe/Berlin ./speedtest-plotter -d sqlite:///$PWD/measurements.db serve
 
 ### GNUPLOT SCRIPT
 

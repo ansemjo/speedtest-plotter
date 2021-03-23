@@ -54,7 +54,7 @@ def parse_measurement(js):
     raise SpeedTestError(err)
   server, client = js.get("server", {}), js.get("client", {})
   return dict(zip(FIELDNAMES, (
-    "0",
+    server.get("host", ""),
     server.get("sponsor", ""),
     server.get("name", ""),
     datetime.datetime.utcnow().isoformat(),

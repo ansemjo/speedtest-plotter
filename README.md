@@ -1,7 +1,7 @@
 # speedtest-plotter
 
 This is a collection of scripts, which takes internet speedtest measurements
-against the speedtest.net network with [taganaka/SpeedTest](https://github.com/taganaka/SpeedTest) and plot them
+against the speedtest.net network with [taganaka/SpeedTest](https://github.com/taganaka/SpeedTest) and plots them
 with [gnuplot](http://gnuplot.sourceforge.net). A crontab schedule is used
 to automate measurements every couple of minutes and save them to a database.
 The results can be displayed through a simple Flask webserver.
@@ -101,9 +101,9 @@ and a header line from `--csv-header`. To take some measurements manually with a
     while true; do speedtest-cli --csv | tee -a results.csv; sleep 600; done
     ^C
 
-Afterwards plot the results to a PNG picture with:
+Afterwards plot the results to an SVG picture with:
 
-    gnuplot -c plotscript results.csv plot.png
+    gnuplot -c plotscript results.csv plot.svg
 
 ## LICENSE
 

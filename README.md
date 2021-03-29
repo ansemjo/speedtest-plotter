@@ -53,6 +53,16 @@ an entirely custom cron schedule like "four times a day":
 
     docker run -d -p 8000:8000 -e SCHEDULE="0 3,9,15,21 * * *" ansemjo/speedtest
 
+To add horizontal dashed lines in the plot (e.g. to mark your expected bandwidths)
+you can use environment variables `MARKER_DOWNLOAD` and `MARKER_UPLOAD`. The values
+are given in `MBit/s`. So for a (very) asymmetric "Gigabit" connection you might use:
+
+    docker run -d \
+      [...] \
+      -e MARKER_DOWNLOAD=1000 \
+      -e MARKER_DOWNLOAD=50 \
+      ansemjo/speedtest
+
 The webserver is a single-threaded Flask application and pipes the data to gnuplot in a subprocess, which may not be suitable
 for production usage. To disable the webserver completely set the `PORT` environment
 variable to an empty string. This will only take measurements and save them to the

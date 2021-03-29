@@ -20,7 +20,7 @@ set datafile separator ","
 # line styles
 set linetype 1 lw 1 lc rgb "skyblue"            # download
 set linetype 2 lw 1 lc rgb "coral"              # upload
-set linetype 3 lw 1 lc rgb "light-green" pt 9   # ping
+set linetype 3 lw 1 lc rgb "light-green" pt 3   # ping
 set linetype 4 lw 3 lc rgb "navy"               # smooth download
 set linetype 5 lw 3 lc rgb "orange-red"         # smooth upload
 

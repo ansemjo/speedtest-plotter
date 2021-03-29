@@ -11,6 +11,8 @@ from dateutil import parser as dateparser, tz
 DATABASE = os.environ.get("DATABASE", "sqlite:///speedtest.db")
 PORT = os.environ.get("PORT", "8000")
 SERVER = os.environ.get("TESTSERVER", None)
+MARKER_DOWNLOAD = os.environ.get("MARKER_DOWNLOAD", 0)
+MARKER_UPLOAD = os.environ.get("MARKER_UPLOAD", 0)
 
 # commandline parser
 p = argparse.ArgumentParser()
@@ -19,6 +21,8 @@ p.add_argument("-p", dest="port", help="port to run application server on (env:P
 p.add_argument("-l", dest="limit", help="limit number of results when dumping", default=32768)
 p.add_argument("-a", dest="after", help="start dump after this date", default=None)
 p.add_argument("-s", dest="server", help="take measurements against specific speedtest.net server", default=SERVER)
+p.add_argument("--marker-download", help="add expected download marker in plot", default=MARKER_DOWNLOAD)
+p.add_argument("--marker-upload", help="add expected upload marker in plot", default=MARKER_UPLOAD)
 p.add_argument("--debug", help="enable flask debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump", "import"], help="start webserver, take a measurement, dump results to csv or reimport csv data")
 args = p.parse_args()
@@ -241,7 +245,10 @@ def flask_server():
   def render():
     try:
       data = spool_measurements()
-      plot = run(["gnuplot", "-c", "plotscript", "/dev/stdin", "/dev/stdout"], stdin=data)
+      plot = run(["gnuplot",
+        "-e", f"marker_download = {args.marker_download}",
+        "-e", f"marker_upload = {args.marker_upload}",
+        "-c", "plotscript", "/dev/stdin", "/dev/stdout"], stdin=data)
       data.close()
       if plot.returncode != 0:
         raise ValueError(plot.stderr.decode())

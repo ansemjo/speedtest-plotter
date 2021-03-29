@@ -33,6 +33,16 @@ fit avgdown(x) ARG1 using 4:7 via down
 avgup(x) = up
 fit avgup(x) ARG1 using 4:8 via up
 
+# add 'expected bandwidth' horizontal markers
+if (exists("marker_download") && marker_download > 0) \
+  marker_download = marker_download * 1000000; \
+  set arrow from graph 0,first marker_download to graph 1,first marker_download \
+  nohead lw 1 dt "-" lc rgb "navy" back
+if (exists("marker_upload") && marker_upload > 0) \
+  marker_upload = marker_upload * 1000000; \
+  set arrow from graph 0,first marker_upload to graph 1,first marker_upload \
+  nohead lw 1 dt "-" lc rgb "orange-red" back
+
 # plot the results
 set terminal svg size 1280, 720 dynamic
 set output ARG2

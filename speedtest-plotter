@@ -27,12 +27,6 @@ p.add_argument("--debug", help="enable flask debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump", "import"], help="start webserver, take a measurement, dump results to csv or reimport csv data")
 args = p.parse_args()
 
-# handle ctrl-c
-def quit(signum, time):
-  print(" quit.")
-  sys.exit(0)
-signal.signal(signal.SIGINT, quit)
-
 # if database argument has no dialect, assume sqlite
 if re.match(r"^\w+://", args.database) is None:
   args.database = "sqlite:///" + args.database
@@ -40,6 +34,13 @@ if re.match(r"^\w+://", args.database) is None:
 # connect to database
 db = dataset.connect(args.database)
 table = db["speedtest"]
+
+# handle ctrl-c
+def quit(signum, time):
+  db.close()
+  print(" quit.")
+  sys.exit(0)
+signal.signal(signal.SIGINT, quit)
 
 # run a subcommand and capture its output
 def run(cmd, stdin=None):

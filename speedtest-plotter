@@ -6,6 +6,7 @@
 import subprocess, csv, json, tempfile, sys, argparse, os, io, signal, re, datetime
 import dataset
 from dateutil import parser as dateparser, tz
+from urllib.parse import urlparse
 
 # default / environment variables
 DATABASE = os.environ.get("DATABASE", "sqlite:///speedtest.db")
@@ -128,7 +129,7 @@ def csv_writer(rows, writer=None):
   return writer
 
 # retrieve measurements from table applying optional filters
-def retrieve_measurements(limit, after):
+def retrieve_measurements(limit, after, **rest):
 
   # maybe use a query to filter by timestamp
   if after:
@@ -151,11 +152,17 @@ def flask_server():
   app = flask.Flask("speedtest", root_path="./")
   app.env = "development"
 
-  # retrieve request parameters for retrieval
-  def request_params(request, limit=672): # ~ one week with a 15 min timer
-    limit = flask.request.args.get("limit", None) or limit
-    after = flask.request.args.get("after", None)
-    return (limit, after)
+  # retrieve common request parameters for retrieval and plotting
+  def request_params(req):
+    # get interesting parameters
+    limit = req.args.get("limit", None) or 672 # ~ one week with a 15 min timer
+    after = req.args.get("after", None) or ""
+    markerdl = flask.request.args.get("marker_download", None) or args.marker_download
+    markerul = flask.request.args.get("marker_upload", None) or args.marker_upload
+    ulscale = flask.request.args.get("upload_scale", None) or args.upload_scale
+    # save the entire query component to pass on
+    query = urlparse(req.url).query
+    return (query, dict(limit=limit, after=after, markerdl=markerdl, markerul=markerul, ulscale=ulscale))
 
   # scale number as mbit/s
   @app.template_filter("mbits")
@@ -172,8 +179,8 @@ def flask_server():
   @app.route("/")
   def home():
     try:
-      limit, after = request_params(flask.request)
-      rows = list(retrieve_measurements(limit, after))
+      (query, params) = request_params(flask.request)
+      rows = list(retrieve_measurements(**params))
       last = rows[0]
       total = total_measurements()
 
@@ -207,6 +214,9 @@ def flask_server():
                 Limit: <input type="number" name="limit" value="{{ limit }}" title="limit to n results">
                 / <span title="total number of measurements">{{ total }}</span>,
                 After: <input type="text" name="after" value="{{ after }}" title="limit to results after this date">
+                <input type="hidden" name="marker_download" value="{{ markerdl }}">
+                <input type="hidden" name="marker_upload" value="{{ markerul }}">
+                <input type="hidden" name="upload_scale" value="{{ ulscale }}">
                 <input type="submit" value="Apply">
               </form>
               <p>
@@ -215,18 +225,18 @@ def flask_server():
                 Upload: {{ last['Upload'] | mbits }},
                 Ping: {{ "%d" | format( last['Ping'] | int ) }} ms
               </p>
-              <a href="/results.csv?limit={{ limit }}&after={{ after }}">
+              <a href="/results.csv?{{ query }}">
                 {% if rows < 2 %}
                 <span>Not enough measurements for a plot (yet). Here's a CSV instead.</span>
                 {% else %}
-                <img src="/results.svg?limit={{ limit }}&after={{ after }}">
+                <img src="/results.svg?{{ query }}">
                 {% endif %}
               </a>
             </center>
           </body>
         </html>
       """
-      return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, limit=limit, after=after or "", rows=len(rows))
+      return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, **params, query=query, rows=len(rows))
 
     except Exception as e:
       err = str(e)
@@ -236,9 +246,8 @@ def flask_server():
       return flask.Response(err, mimetype="text/plain", status=500)
 
   # retrieve spooled measurements with request params
-  def spool_measurements():
-    limit, after = request_params(flask.request)
-    rows = retrieve_measurements(limit, after)
+  def spool_measurements(params):
+    rows = retrieve_measurements(**params)
     spool = csv_writer(rows)
     spool.seek(0)
     return spool
@@ -247,11 +256,12 @@ def flask_server():
   @app.route("/results.svg")
   def render():
     try:
-      data = spool_measurements()
+      (query, params) = request_params(flask.request)
+      data = spool_measurements(params)
       plot = run(["gnuplot",
-        "-e", f"marker_download = {args.marker_download}",
-        "-e", f"marker_upload = {args.marker_upload}",
-        "-e", f"upload_scale = {args.upload_scale}",
+        "-e", f"marker_download = {params['markerdl']}",
+        "-e", f"marker_upload = {params['markerul']}",
+        "-e", f"upload_scale = {params['ulscale']}",
         "-c", "plotscript", "/dev/stdin", "/dev/stdout"], stdin=data)
       data.close()
       if plot.returncode != 0:
@@ -265,7 +275,8 @@ def flask_server():
   @app.route("/results.csv")
   def results():
     try:
-      data = spool_measurements()
+      (query, params) = request_params(flask.request)
+      data = spool_measurements(params)
       return flask.Response(data, mimetype="text/plain")
     except Exception as e:
       return flask.Response(str(e), mimetype="text/plain", status=500)

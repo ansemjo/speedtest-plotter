@@ -150,7 +150,7 @@ def flask_server():
   app.env = "development"
 
   # retrieve request parameters for retrieval
-  def request_params(request, limit=1344): # ~ two weeks with a 15 min timer
+  def request_params(request, limit=672): # ~ one week with a 15 min timer
     limit = flask.request.args.get("limit", None) or limit
     after = flask.request.args.get("after", None)
     return (limit, after)

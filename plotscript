@@ -1,28 +1,46 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-# metadata, labels, ranges, etc.
-set title "Speedtest Results\ngithub.com/ansemjo/speedtest-plotter"
-set timestamp "plotted %F %T %Z"
-set xlabel "Measurement Date"
+# general input / output and data options
 set xdata time
 set timefmt "%Y-%m-%dT%H:%M:%S.*Z"
-set xtics format "%Y-%m-%d\n%H:%M:%S" out
-set ylabel "Measured Speed"
-set ytics format "%.2s %cBit/s" nomirror out
-set yrange [0:*]
-set y2label "Ping"
-set y2tics format "%.0f ms" nomirror out
-set y2range [0:*]
-set grid
 set datafile separator ","
+set terminal svg size 1280, 800 dynamic
+set output ARG2
+set multiplot
 
-# line styles
-set linetype 1 lw 1 lc rgb "skyblue"            # download
-set linetype 2 lw 1 lc rgb "coral"              # upload
-set linetype 3 lw 1 lc rgb "light-green" pt 3   # ping
-set linetype 4 lw 3 lc rgb "navy"               # smooth download
-set linetype 5 lw 3 lc rgb "orange-red"         # smooth upload
+# manual margins for multiplot
+set bmargin screen 0.11
+set tmargin screen 0.92
+set lmargin screen 0.12
+set rmargin screen 0.91
+
+# pick colors
+rgb_download      = "#00000080"
+rgb_download_fade = "#702185ff"
+rgb_download_text = "#00000080"
+rgb_upload        = "#00ff3371"
+rgb_upload_fade   = "#70ff3371"
+rgb_upload_text   = "#00ff3371"
+rgb_ping          = "#0070e000"
+
+# check if bandwidth markers are given and scale to mbits
+# config with: gnuplot -e 'marker_download = <mbit>' ...
+if (exists("marker_download") && marker_download > 0) \
+  marker_download = marker_download * 1000000; \
+  dlmarker = 1; else dlmarker = 0;
+if (exists("marker_upload") && marker_upload > 0) \
+  marker_upload = marker_upload * 1000000; \
+  ulmarker = 1; else ulmarker = 0;
+
+# scaling of upload plot relative to download range
+# config with: gnuplot -e 'upload_scale = <factor>' ...
+if (exists("upload_scale") && upload_scale > 0 && upload_scale != 1) \
+  ulscale = upload_scale; else ulscale = 1;
+
+# save if scaling is different and a split tick labels are needed
+if (ulscale != 1 || marker_download != marker_upload) \
+  split_ticks = 1; else split_ticks = 0;
 
 # calculate averages per dimension
 set fit quiet logfile "/dev/null"
@@ -33,23 +51,73 @@ fit avgdown(x) ARG1 using 4:7 via down
 avgup(x) = up
 fit avgup(x) ARG1 using 4:8 via up
 
-# add 'expected bandwidth' horizontal markers
-# if expected download speed is given, use that for the axis' range
-if (exists("marker_download") && marker_download > 0) \
-  marker_download = marker_download * 1000000; \
-  set arrow from graph 0,first marker_download to graph 1,first marker_download \
-  nohead lw 1 dt "-" lc rgb "navy" back; \
-  set yrange [0:marker_download*1.5]
-if (exists("marker_upload") && marker_upload > 0) \
-  marker_upload = marker_upload * 1000000; \
-  set arrow from graph 0,first marker_upload to graph 1,first marker_upload \
-  nohead lw 1 dt "-" lc rgb "orange-red" back
+# ---------- plot 1/3: ping and labels ----------
 
-# plot the results
-set terminal svg size 1280, 720 dynamic
-set output ARG2
+# enable all titles and labels that need to be plotted once
+set title "Speedtest Results\ngithub.com/ansemjo/speedtest-plotter"
+set timestamp "plotted %F %T %Z"
+set xlabel "Measurement Date"
+set ylabel "Bandwidth" offset -12, 0
+set xtics format "%Y-%m-%d\n%H:%M:%S" out
+
+# plot ping data
+unset ytics
+set yrange [0:*]
+set y2label "Ping"
+set y2tics format "%.0f ms" nomirror out
+set y2range [0:*]
+set key at graph 1, graph 0.92
+set linetype 1 lw 1 lc rgb rgb_ping pt 1
 plot \
-  for [col=7:8] ARG1 using 4:col notitle with steps, \
-  ARG1 using 4:6 title gprintf("Ping (≈ %.0f ms)", avgping(x)) axes x1y2 with points, \
-  ARG1 using 4:7 title gprintf("Download (≈ %.2s %cBit/s)", avgdown(x)) sm bezier, \
-  ARG1 using 4:8 title gprintf("Upload (≈ %.2s %cBit/s)", avgup(x)) sm bezier, \
+  ARG1 using 4:6 title gprintf("Ping (avg. %.0f ms)", avgping(x)) axes x1y2 with points lt 1
+
+# unset elements that would be duplicate
+unset title
+unset timestamp
+unset xlabel
+unset ylabel
+unset y2label
+unset y2tics
+set xtics format "" out
+set ytics format "%.2s %cBit/s" nomirror out
+set grid
+
+# ---------- plot 2/3: download ----------
+
+# if download marker is given, use it for yrange
+if (dlmarker) \
+  set arrow from graph 0,first marker_download to graph 1,first marker_download \
+  nohead lw 2 dt "-" lc rgb rgb_download_text back; \
+  set yrange [0:marker_download*1.5]; \
+else set yrange [0:*]
+
+# maybe split tick labels
+if (split_ticks) set ytics offset 0, 0.5 tc rgb rgb_download_text;
+
+set key at graph 1, graph 0.98
+set linetype 1 lw 1 lc rgb rgb_download_fade
+set linetype 2 lw 3 lc rgb rgb_download
+plot \
+  ARG1 using 4:7 notitle with steps, \
+  ARG1 using 4:7 title gprintf("Download (avg. %.2s %cBit/s)", avgdown(x)) sm bezier
+
+# ---------- plot 3/3: upload ----------
+
+# if upload marker is given, use it for yrange, maybe scale
+if (ulmarker) \
+  set arrow from graph 0,first marker_upload to graph 1,first marker_upload \
+  nohead lw 2 dt "-" lc rgb rgb_upload_text back; \
+  set yrange [0:(marker_upload*1.5)/ulscale]; \
+else set yrange [0:GPVAL_Y_MAX/ulscale]
+
+# either split tick labels or simply unset
+if (split_ticks) \
+  set ytics offset 0, -0.5 textcolor rgb rgb_upload_text; \
+  else unset ytics;
+
+set key at graph 1, graph 0.95
+set linetype 1 lw 1 lc rgb rgb_upload_fade
+set linetype 2 lw 3 lc rgb rgb_upload
+plot \
+  ARG1 using 4:8 notitle with steps, \
+  ARG1 using 4:8 title gprintf("Upload (avg. %.2s %cBit/s)", avgup(x)) sm bezier

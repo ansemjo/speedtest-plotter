@@ -13,6 +13,7 @@ PORT = os.environ.get("PORT", "8000")
 SERVER = os.environ.get("TESTSERVER", None)
 MARKER_DOWNLOAD = os.environ.get("MARKER_DOWNLOAD", 0)
 MARKER_UPLOAD = os.environ.get("MARKER_UPLOAD", 0)
+UPLOAD_SCALE = os.environ.get("UPLOAD_SCALE", 1.0)
 
 # commandline parser
 p = argparse.ArgumentParser()
@@ -23,6 +24,7 @@ p.add_argument("-a", dest="after", help="start dump after this date", default=No
 p.add_argument("-s", dest="server", help="take measurements against specific speedtest.net server", default=SERVER)
 p.add_argument("--marker-download", help="add expected download marker in plot", default=MARKER_DOWNLOAD)
 p.add_argument("--marker-upload", help="add expected upload marker in plot", default=MARKER_UPLOAD)
+p.add_argument("--upload-scale", help="scale upload yrange relative to download", default=UPLOAD_SCALE)
 p.add_argument("--debug", help="enable flask debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump", "import"], help="start webserver, take a measurement, dump results to csv or reimport csv data")
 args = p.parse_args()
@@ -249,12 +251,14 @@ def flask_server():
       plot = run(["gnuplot",
         "-e", f"marker_download = {args.marker_download}",
         "-e", f"marker_upload = {args.marker_upload}",
+        "-e", f"upload_scale = {args.upload_scale}",
         "-c", "plotscript", "/dev/stdin", "/dev/stdout"], stdin=data)
       data.close()
       if plot.returncode != 0:
         raise ValueError(plot.stderr.decode())
       return flask.Response(plot.stdout, mimetype="image/svg+xml")
     except Exception as e:
+      print(e, file=sys.stderr)
       return flask.Response(str(e), mimetype="text/plain", status=500)
 
   # return raw data in formatted csv

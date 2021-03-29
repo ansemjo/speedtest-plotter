@@ -1,10 +1,13 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-# general input / output and data options
+# general I/O and data options, find some stats
+set datafile separator ","
+stats ARG1 using 6 name "PING"
+stats ARG1 using 7 name "DOWNLOAD"
+stats ARG1 using 8 name "UPLOAD"
 set xdata time
 set timefmt "%Y-%m-%dT%H:%M:%S.*Z"
-set datafile separator ","
 set terminal svg size 1280, 800 dynamic
 set output ARG2
 set multiplot
@@ -38,15 +41,6 @@ if (exists("marker_upload") && marker_upload > 0) \
 if (exists("upload_scale") && upload_scale > 0 && upload_scale != 1) \
   ulscale = upload_scale; else ulscale = 1.0;
 
-# calculate averages per dimension
-set fit quiet logfile "/dev/null"
-avgping(x) = ping
-fit avgping(x) ARG1 using 4:6 via ping
-avgdown(x) = down
-fit avgdown(x) ARG1 using 4:7 via down
-avgup(x) = up
-fit avgup(x) ARG1 using 4:8 via up
-
 # ---------- plot 1/3: ping and labels ----------
 
 # enable all titles and labels that need to be plotted once
@@ -56,7 +50,7 @@ set xlabel "Measurement Date"
 set ylabel "Bandwidth" offset -12, 0
 set xtics format "%Y-%m-%d\n%H:%M:%S" out
 
-# plot ping data
+# --> plot ping
 unset ytics
 set yrange [0:*]
 set y2label "Ping"
@@ -65,7 +59,7 @@ set y2range [0:*]
 set key at graph 1, graph 0.92
 set linetype 1 lw 1 lc rgb rgb_ping pt 1
 plot \
-  ARG1 using 4:6 title gprintf("Ping (avg. %.0f ms)", avgping(x)) axes x1y2 with points lt 1
+  ARG1 using 4:6 title gprintf("Ping (avg. %.0f ms)", PING_mean) axes x1y2 with points lt 1
 
 # unset elements that would be duplicate
 unset title
@@ -75,7 +69,6 @@ unset ylabel
 unset y2label
 unset y2tics
 set xtics format "" out
-set ytics format "%.2s %cBit/s" nomirror out
 set grid
 
 # ---------- plot 2/3: download ----------
@@ -87,15 +80,35 @@ if (dlmarker) \
   set yrange [0:marker_download*1.5]; \
 else set yrange [0:*]
 
-# maybe split tick labels
-if (ulscale != 1.0) set ytics offset 0, 0.5 tc rgb rgb_download_text;
+# mark the average
+set arrow from graph 0,first DOWNLOAD_mean to graph 1,first DOWNLOAD_mean \
+  nohead lw 2 dt "." lc rgb rgb_download_fade back;
 
+# find a sensible tick interval manually
+if (dlmarker) ymax = marker_download * 1.2 / 1000000; \
+else          ymax = DOWNLOAD_max / 1000000;
+if (ymax /   1 < 10) i =   1; else \
+if (ymax /   2 < 10) i =   2; else \
+if (ymax /   5 < 10) i =   5; else \
+if (ymax /  10 < 10) i =  10; else \
+if (ymax /  20 < 10) i =  20; else \
+if (ymax /  50 < 10) i =  50; else \
+if (ymax / 100 < 10) i = 100; else \
+if (ymax / 200 < 10) i = 200; else \
+if (ymax / 500 < 10) i = 500;
+interval = i * 1000000;
+set ytics format "%.2s %cBit/s" nomirror out
+
+# maybe split tick labels
+if (ulscale != 1.0) set ytics offset 0,0.4 interval tc rgb rgb_download_text;
+
+# --> plot download
 set key at graph 1, graph 0.98
 set linetype 1 lw 1 lc rgb rgb_download_fade
 set linetype 2 lw 3 lc rgb rgb_download
 plot \
   ARG1 using 4:7 notitle with steps, \
-  ARG1 using 4:7 title gprintf("Download (avg. %.2s %cBit/s)", avgdown(x)) sm bezier
+  ARG1 using 4:7 title gprintf("Download (avg. %.2s %cBit/s)", DOWNLOAD_mean) sm bezier
 
 # ---------- plot 3/3: upload ----------
 
@@ -105,14 +118,19 @@ if (ulmarker) \
   nohead lw 2 dt "-" lc rgb rgb_upload_text back;
 set yrange [0:GPVAL_Y_MAX/ulscale]
 
+# mark the average
+set arrow from graph 0,first UPLOAD_mean to graph 1,first UPLOAD_mean \
+  nohead lw 1 dt "-" lc rgb rgb_upload_fade back;
+
 # either split tick labels or simply unset
 if (ulscale != 1.0) \
-  set ytics offset 0, -0.5 textcolor rgb rgb_upload_text; \
+  set ytics offset 0,-0.4 interval/ulscale textcolor rgb rgb_upload_text; \
   else unset ytics;
 
+# --> plot upload
 set key at graph 1, graph 0.95
 set linetype 1 lw 1 lc rgb rgb_upload_fade
 set linetype 2 lw 3 lc rgb rgb_upload
 plot \
   ARG1 using 4:8 notitle with steps, \
-  ARG1 using 4:8 title gprintf("Upload (avg. %.2s %cBit/s)", avgup(x)) sm bezier
+  ARG1 using 4:8 title gprintf("Upload (avg. %.2s %cBit/s)", UPLOAD_mean) sm bezier

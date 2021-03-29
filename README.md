@@ -57,18 +57,16 @@ To add horizontal dashed lines in the plot (e.g. to mark your expected bandwidth
 you can use environment variables `MARKER_DOWNLOAD` and `MARKER_UPLOAD`. The values
 are given in `MBit/s`. 
 
-If you give both a download and an upload marker, the y-ranges will be scaled so
-that the markers lie on the same height. For highly asymmetrical connections this
-makes it easier to see the upload bandwidth. In addition or independently from that
-you can also set a range scaling for the upload plot with `UPLOAD_SCALE`. You can
-also use this so that the markers *do not* lie on the same height and the plot is
-not as chaotic. For example, the above example picture was created with:
+In addition or independently from that you can also set a range scaling for the upload
+plot relative to the download range with `UPLOAD_SCALE`. For highly asymmetrical connections
+this makes it easier to see the upload bandwidth. For example, the above example
+picture was created with:
 
     docker run -d \
       [...] \
       -e MARKER_DOWNLOAD=800 \
       -e MARKER_UPLOAD=40 \
-      -e UPLOAD_SCALE=0.5 \
+      -e UPLOAD_SCALE=10 \
       ansemjo/speedtest
 
 The webserver is a single-threaded Flask application and pipes the data to gnuplot in a subprocess, which may not be suitable

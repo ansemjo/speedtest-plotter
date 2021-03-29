@@ -36,11 +36,7 @@ if (exists("marker_upload") && marker_upload > 0) \
 # scaling of upload plot relative to download range
 # config with: gnuplot -e 'upload_scale = <factor>' ...
 if (exists("upload_scale") && upload_scale > 0 && upload_scale != 1) \
-  ulscale = upload_scale; else ulscale = 1;
-
-# save if scaling is different and a split tick labels are needed
-if (ulscale != 1 || marker_download != marker_upload) \
-  split_ticks = 1; else split_ticks = 0;
+  ulscale = upload_scale; else ulscale = 1.0;
 
 # calculate averages per dimension
 set fit quiet logfile "/dev/null"
@@ -92,7 +88,7 @@ if (dlmarker) \
 else set yrange [0:*]
 
 # maybe split tick labels
-if (split_ticks) set ytics offset 0, 0.5 tc rgb rgb_download_text;
+if (ulscale != 1.0) set ytics offset 0, 0.5 tc rgb rgb_download_text;
 
 set key at graph 1, graph 0.98
 set linetype 1 lw 1 lc rgb rgb_download_fade
@@ -103,15 +99,14 @@ plot \
 
 # ---------- plot 3/3: upload ----------
 
-# if upload marker is given, use it for yrange, maybe scale
+# if upload marker is given, use it for yrange
 if (ulmarker) \
   set arrow from graph 0,first marker_upload to graph 1,first marker_upload \
-  nohead lw 2 dt "-" lc rgb rgb_upload_text back; \
-  set yrange [0:(marker_upload*1.5)/ulscale]; \
-else set yrange [0:GPVAL_Y_MAX/ulscale]
+  nohead lw 2 dt "-" lc rgb rgb_upload_text back;
+set yrange [0:GPVAL_Y_MAX/ulscale]
 
 # either split tick labels or simply unset
-if (split_ticks) \
+if (ulscale != 1.0) \
   set ytics offset 0, -0.5 textcolor rgb rgb_upload_text; \
   else unset ytics;
 

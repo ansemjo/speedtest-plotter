@@ -50,12 +50,16 @@ set xlabel "Measurement Date"
 set ylabel "Bandwidth" offset -12, 0
 set xtics format "%Y-%m-%d\n%H:%M:%S" out
 
+# set upper ping range
+pingrange = PING_mean + (3 * PING_stddev)
+if (pingrange < 50) pingrange = 50;
+
 # --> plot ping
 unset ytics
-set yrange [0:*]
+unset yrange
 set y2label "Ping"
 set y2tics format "%.0f ms" nomirror out
-set y2range [0:*]
+set y2range [0:pingrange]
 set key at graph 1, graph 0.92
 set linetype 1 lw 1 lc rgb rgb_ping pt 1
 plot \
@@ -82,7 +86,7 @@ else set yrange [0:*]
 
 # mark the average
 set arrow from graph 0,first DOWNLOAD_mean to graph 1,first DOWNLOAD_mean \
-  nohead lw 2 dt "." lc rgb rgb_download_fade back;
+  nohead lw 1 dt "-" lc rgb rgb_download_fade back;
 
 # find a sensible tick interval manually
 if (dlmarker) ymax = marker_download * 1.2 / 1000000; \

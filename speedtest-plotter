@@ -3,7 +3,7 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-import subprocess, csv, json, tempfile, sys, argparse, os, io, signal, re, datetime
+import subprocess, csv, json, tempfile, sys, argparse, os, io, signal, re, datetime, logging
 import dataset
 from dateutil import parser as dateparser, tz
 from urllib.parse import urlparse
@@ -14,21 +14,30 @@ PORT = os.environ.get("PORT", "8000")
 SERVER = os.environ.get("TESTSERVER", None)
 MARKER_DOWNLOAD = os.environ.get("MARKER_DOWNLOAD", 0)
 MARKER_UPLOAD = os.environ.get("MARKER_UPLOAD", 0)
-UPLOAD_SCALE = os.environ.get("UPLOAD_SCALE", 1.0)
+UPLOAD_SCALE = os.environ.get("UPLOAD_SCALE", 1)
 
 # commandline parser
 p = argparse.ArgumentParser()
-p.add_argument("-d", dest="database", help="database connection uri (env:DATABASE)", default=DATABASE)
-p.add_argument("-p", dest="port", help="port to run application server on (env:PORT)", default=PORT)
+p.add_argument("-d", dest="database", help="database connection uri", default=DATABASE)
+p.add_argument("-p", dest="port", help="port to run application server on", default=PORT)
+p.add_argument("-s", dest="server", help="take measurements against specific server:port", default=SERVER)
 p.add_argument("-l", dest="limit", help="limit number of results when dumping", default=32768)
-p.add_argument("-a", dest="after", help="start dump after this date", default=None)
-p.add_argument("-s", dest="server", help="take measurements against specific speedtest.net server", default=SERVER)
+p.add_argument("-o", dest="order", help="order retrieval, desc/before or asc/after the date", choices=("asc", "desc"), default="desc")
+p.add_argument("-t", dest="date", help="dump up to or after this iso timestamp", default="now")
 p.add_argument("--marker-download", help="add expected download marker in plot", default=MARKER_DOWNLOAD)
 p.add_argument("--marker-upload", help="add expected upload marker in plot", default=MARKER_UPLOAD)
 p.add_argument("--upload-scale", help="scale upload yrange relative to download", default=UPLOAD_SCALE)
-p.add_argument("--debug", help="enable flask debugging", action="store_true")
+p.add_argument("--debug", help="enable flask and sql debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump", "import"], help="start webserver, take a measurement, dump results to csv or reimport csv data")
 args = p.parse_args()
+
+# print sql engine messages when debugging
+if args.debug:
+  sqllog = logging.StreamHandler()
+  sqllog.setFormatter(logging.Formatter("SQL Engine> %(message)s"))
+  engine = logging.getLogger('sqlalchemy.engine')
+  engine.setLevel(logging.INFO)
+  engine.addHandler(sqllog)
 
 # if database argument has no dialect, assume sqlite
 if re.match(r"^\w+://", args.database) is None:
@@ -49,9 +58,9 @@ signal.signal(signal.SIGINT, quit)
 def run(cmd, stdin=None):
   return subprocess.run(cmd, capture_output=True, stdin=stdin)
 
-# return current utc timestamp in isoformat
-def utctimestamp():
-  return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
+# return current utc time
+def utcnow():
+  return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0)
 
 # get local timezone from TZ env
 localtz = tz.gettz()
@@ -63,9 +72,20 @@ def isoformat_to_local(then):
     t = t.replace(tzinfo=datetime.timezone.utc)
   return t.astimezone(localtz)
 
+def pltrange(t):
+  if t.tzinfo is None:
+    t = t.replace(tzinfo=datetime.timezone.utc)
+  return t.astimezone(localtz).replace(microsecond=0).isoformat()
+
 # parse a possibly unqualified timestamp to utc for searching
 def parse_to_utc(then):
-  t = dateparser.parse(then)
+  try:
+    if then == "now":
+      t = utcnow()
+    else:
+      t = dateparser.parse(then)
+  except Exception as e:
+    raise ValueError(f"cannot parse iso date: {e}")
   if t.tzinfo is None:
     t = t.replace(tzinfo=localtz)
   return t.astimezone(datetime.timezone.utc)
@@ -78,7 +98,7 @@ FIELDNAMES = ("Server ID", "Sponsor", "Server Name", "Timestamp", "Distance",
 class SpeedTestError(Exception): pass
 
 # parse the json output of taganaka/SpeedTest
-def parse_measurement(js, utcnow=utctimestamp()):
+def parse_measurement(js, now=utcnow().isoformat()):
   if (err := js.get("error")) is not None:
     raise SpeedTestError(err)
   server, client = js.get("server", {}), js.get("client", {})
@@ -86,7 +106,7 @@ def parse_measurement(js, utcnow=utctimestamp()):
     server.get("host", ""),
     server.get("sponsor", ""),
     server.get("name", ""),
-    utcnow,
+    now,
     server.get("distance", ""),
     js["ping"],
     js["download"],
@@ -100,11 +120,11 @@ def take_measurement():
   cmd = ["SpeedTest", "--output", "json"]
   if args.server:
     cmd += ["--test-server", args.server]
-  utcnow = utctimestamp()
+  now = utcnow().isoformat()
   res = run(cmd)
   if res.returncode != 0:
     raise SpeedTestError(res.stderr.decode())
-  r = parse_measurement(json.loads(res.stdout), utcnow)
+  r = parse_measurement(json.loads(res.stdout), now)
   table.insert(r)
   print(r)
 
@@ -117,32 +137,68 @@ def csv_reader(reader):
     yield line
 
 # output stored database rows to writer as speedtest-cli csv with header
-def csv_writer(rows, writer=None):
-  if writer is None:
-    writer = tempfile.SpooledTemporaryFile(mode="wt+")
+def csv_writer(rows, writer):
   wr = csv.DictWriter(writer, fieldnames=FIELDNAMES)
   wr.writeheader()
-  for row in sorted(rows, key=lambda r: r["id"]):
-    del row["id"]
+  for row in rows: #sorted(rows, key=lambda r: r["id"]):
+    try: del row["id"]
+    except: pass
     row["Timestamp"] = isoformat_to_local(row["Timestamp"]).isoformat()
     wr.writerow(row)
   return writer
 
+# write retrieved measurements to a spooled temporary file
+def spooler(rows):
+  spool = tempfile.SpooledTemporaryFile(mode="wt+")
+  csv_writer(rows, spool)
+  spool.seek(0)
+  return spool
+
+# retrieve only the latest measurement
+def latest():
+  return table.find_one(order_by=["-Timestamp"])
+
 # retrieve measurements from table applying optional filters
-def retrieve_measurements(limit, after, **rest):
+def retrieve_measurements(limit, order, date, **rest):
+  delta = None
+  ascend = True
 
-  # maybe use a query to filter by timestamp
-  if after:
-    try: after = parse_to_utc(after).isoformat()
-    except Exception as e:
-      raise ValueError("cannot parse argument as date: " + str(e))
-    return db.query("SELECT * FROM speedtest WHERE \"Timestamp\" >= :ts ORDER BY \"Timestamp\" ASC LIMIT :li", ts=after, li=limit)
+  # check ordering argument
+  if order == "asc":
+    ascend = True
+  elif order == "desc":
+    ascend = False
   else:
-    return db.query("SELECT * FROM speedtest WHERE \"Timestamp\" IS NOT NULL ORDER BY \"Timestamp\" DESC LIMIT :li", li=limit)
+    raise ValueError("order must be either \"asc\" or \"desc\"")
 
-# just return the total number of rows
-def total_measurements():
-  return len(table)
+  # fill date if none given
+  if date is None or date == "":
+    date = parse_to_utc(latest()["Timestamp"]) or utcnow()
+  else:
+    date = parse_to_utc(date)
+
+  # maybe interpret limit as a timeframe
+  if match := re.match(r"^([0-9]+)([dh]?)$", str(limit)):
+    num, mod = match.groups()
+    if mod == "d":   delta = datetime.timedelta(days=int(num))
+    elif mod == "h": delta = datetime.timedelta(hours=int(num))
+    else: limit = int(num)
+  else:
+    raise ValueError("unknown limit format! must match: /^([0-9]+)([dh]?)$/")
+
+  if delta:
+    if ascend:
+      pr = (pltrange(date), pltrange(date+delta))
+      return pr, table.find(Timestamp={'>=': date.isoformat(), '<=': (date+delta).isoformat()}, order_by=["-Timestamp"])
+    else:
+      pr = (pltrange(date-delta), pltrange(date))
+      return pr, table.find(Timestamp={'>=': (date-delta).isoformat(), '<=': date.isoformat()}, order_by=["-Timestamp"])
+  else:
+    if ascend:
+      return None, table.find(Timestamp={'>=': date.isoformat()}, order_by=["Timestamp"], _limit=limit)
+    else:
+      return None, table.find(Timestamp={'<=': date.isoformat()}, order_by=["-Timestamp"], _limit=limit)
+
 
 def flask_server():
 
@@ -155,14 +211,15 @@ def flask_server():
   # retrieve common request parameters for retrieval and plotting
   def request_params(req):
     # get interesting parameters
-    limit = req.args.get("limit", None) or 672 # ~ one week with a 15 min timer
-    after = req.args.get("after", None) or ""
+    limit = req.args.get("limit", None) or "7d"
+    order = req.args.get("order", None) or "desc"
+    date = req.args.get("date", None) or "now"
     markerdl = flask.request.args.get("marker_download", None) or args.marker_download
     markerul = flask.request.args.get("marker_upload", None) or args.marker_upload
     ulscale = flask.request.args.get("upload_scale", None) or args.upload_scale
     # save the entire query component to pass on
     query = urlparse(req.url).query
-    return (query, dict(limit=limit, after=after, markerdl=markerdl, markerul=markerul, ulscale=ulscale))
+    return (query, dict(limit=limit, order=order, date=date, markerdl=markerdl, markerul=markerul, ulscale=ulscale))
 
   # scale number as mbit/s
   @app.template_filter("mbits")
@@ -180,9 +237,13 @@ def flask_server():
   def home():
     try:
       (query, params) = request_params(flask.request)
-      rows = list(retrieve_measurements(**params))
-      last = rows[0]
-      total = total_measurements()
+      # dummy check if all parameters are legal
+      retrieve_measurements(**params)
+      # TODO: find an elegant way to display *some* measurement?
+      # - using rows[0] is a problem if there's no data in range
+      # - using latest() is not useful when looking at a historic range
+      #last = latest()
+      total = len(table)
 
       TEMPLATE = """
         <!DOCTYPE html>
@@ -191,7 +252,7 @@ def flask_server():
             <meta charset="utf-8">
             <title>Speedtest Plot</title>
             <style>
-              input {
+              input, select {
                 box-sizing: border-box;
                 border: 1px solid #000;
                 border-radius: 3px;
@@ -201,42 +262,45 @@ def flask_server():
                 font-family: monospace;
               }
               img {
-                border: 1px solid black;
+                border: 1px solid gray;
                 margin: 1em;
                 max-width: calc(100% - 2em);
                 max-height: 80vh;
+              }
+              body {
+                background-color: white;
               }
             </style>
           </head>
           <body>
             <center>
               <form action="/" method="get">
-                Limit: <input type="number" name="limit" value="{{ limit }}" title="limit to n results">
-                / <span title="total number of measurements">{{ total }}</span>,
-                After: <input type="text" name="after" value="{{ after }}" title="limit to results after this date">
+                Show
+                <input type="text" name="limit" value="{{ limit }}" title="limit number of results (total: {{ total }})">
+                <select name="order" title="'after' (descending) or 'up to' (ascending before)">
+                  <option value="asc"  {% if order == "asc" %}selected="selected"{% endif %}>After</option>
+                  <option value="desc" {% if order != "asc" %}selected="selected"{% endif %}>Before</option>
+                </select>
+                <input type="text" name="date" value="{{ date }}" title="a particular date in iso format">
                 <input type="hidden" name="marker_download" value="{{ markerdl }}">
                 <input type="hidden" name="marker_upload" value="{{ markerul }}">
                 <input type="hidden" name="upload_scale" value="{{ ulscale }}">
                 <input type="submit" value="Apply">
               </form>
-              <p>
-                Measurement at {{ last['Timestamp'] | datefmt }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
+              {#<p>
+                Latest Measurement at {{ last['Timestamp'] | datefmt }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
                 Download: {{ last['Download'] | mbits }},
                 Upload: {{ last['Upload'] | mbits }},
                 Ping: {{ "%d" | format( last['Ping'] | int ) }} ms
-              </p>
+              </p>#}
               <a href="/results.csv?{{ query }}">
-                {% if rows < 2 %}
-                <span>Not enough measurements for a plot (yet). Here's a CSV instead.</span>
-                {% else %}
                 <img src="/results.svg?{{ query }}">
-                {% endif %}
               </a>
             </center>
           </body>
         </html>
       """
-      return flask.render_template_string(TEMPLATE, args=flask.request.args, last=last, total=total, **params, query=query, rows=len(rows))
+      return flask.render_template_string(TEMPLATE, total=total, query=query, **params)
 
     except Exception as e:
       err = str(e)
@@ -245,20 +309,25 @@ def flask_server():
       print(err)
       return flask.Response(err, mimetype="text/plain", status=500)
 
-  # retrieve spooled measurements with request params
-  def spool_measurements(params):
-    rows = retrieve_measurements(**params)
-    spool = csv_writer(rows)
-    spool.seek(0)
-    return spool
-
   # return rendered plot picture
   @app.route("/results.svg")
   def render():
     try:
-      (query, params) = request_params(flask.request)
-      data = spool_measurements(params)
-      plot = run(["gnuplot",
+      _, params = request_params(flask.request)
+      pr, rows = retrieve_measurements(**params)
+      rows = list(rows)
+      empty = False
+      if len(rows) <= 0:
+        # spoof a "null" row so gnuplot doesn't complain
+        spoof = dict(([k,"0"] for k in list(FIELDNAMES) + ["id"]))
+        spoof["Timestamp"] = "1970-01-01"
+        rows = [spoof]
+        empty = True
+      data = spooler(rows)
+      #return flask.Response(data, mimetype="text/plain")
+      pr = ["-e", f"xrange_from = \"{pr[0]}\"", "-e", f"xrange_to = \"{pr[1]}\""] if pr else []
+      empty = ["-e", "empty_range = 1"] if empty else []
+      plot = run(["gnuplot", *pr, *empty,
         "-e", f"marker_download = {params['markerdl']}",
         "-e", f"marker_upload = {params['markerul']}",
         "-e", f"upload_scale = {params['ulscale']}",
@@ -275,8 +344,9 @@ def flask_server():
   @app.route("/results.csv")
   def results():
     try:
-      (query, params) = request_params(flask.request)
-      data = spool_measurements(params)
+      _, params = request_params(flask.request)
+      _, rows = retrieve_measurements(**params)
+      data = spooler(rows)
       return flask.Response(data, mimetype="text/plain")
     except Exception as e:
       return flask.Response(str(e), mimetype="text/plain", status=500)
@@ -298,7 +368,7 @@ try:
       print(m)
 
   elif args.command == "dump":
-    rows = retrieve_measurements(args.limit, args.after)
+    _, rows = retrieve_measurements(args.limit, args.order, args.date)
     csv_writer(rows, sys.stdout)
 
   else:

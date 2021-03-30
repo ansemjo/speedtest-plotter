@@ -41,6 +41,14 @@ if (exists("marker_upload") && marker_upload > 0) \
 if (exists("upload_scale") && upload_scale > 0 && upload_scale != 1) \
   ulscale = upload_scale; else ulscale = 1.0;
 
+# marker set for empty ranges
+if (!(exists("empty_range") && empty_range == 1)) \
+  empty_range = 0;
+
+# set specific xrange if bounds are given
+if (empty_range != 1 && exists("xrange_from") && exists("xrange_to")) \
+  set xrange [xrange_from:xrange_to];
+
 # ---------- plot 1/3: ping and labels ----------
 
 # enable all titles and labels that need to be plotted once
@@ -115,6 +123,10 @@ plot \
   ARG1 using 4:7 title gprintf("Download (avg. %.2s %cBit/s)", DOWNLOAD_mean) sm bezier
 
 # ---------- plot 3/3: upload ----------
+
+# add warning if no data was in range
+if (empty_range) \
+  set label "NO DATA IN RANGE" at graph 0.5,0.5 center font "default,20"
 
 # if upload marker is given, use it for yrange
 if (ulmarker) \

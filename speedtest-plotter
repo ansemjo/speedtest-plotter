@@ -67,7 +67,10 @@ localtz = tz.gettz()
 
 # transform a timestamp (assume utc) to local timezone (given in TZ env)
 def isoformat_to_local(then):
-  t = datetime.datetime.fromisoformat(then)
+  try:
+    t = datetime.datetime.fromisoformat(then)
+  except ValueError:
+    t = dateparser.parse(then)
   if t.tzinfo is None:
     t = t.replace(tzinfo=datetime.timezone.utc)
   return t.astimezone(localtz)

@@ -44,7 +44,7 @@ if re.match(r"^\w+://", args.database) is None:
   args.database = "sqlite:///" + args.database
 
 # connect to database
-db = dataset.connect(args.database)
+db = dataset.connect(args.database, sqlite_wal_mode=False)
 table = db["speedtest"]
 
 # handle ctrl-c

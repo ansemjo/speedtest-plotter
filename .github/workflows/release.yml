@@ -94,11 +94,13 @@ jobs:
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id }}
-      -
-        name: Docker Hub Description
-        uses: peter-evans/dockerhub-description@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ env.IMAGENAME }}
+
+      # Disabled because Personal Access Tokens cannot be used with the API right now.
+      #-
+      #  name: Docker Hub Description
+      #  uses: peter-evans/dockerhub-description@v2
+      #  with:
+      #    username: ${{ secrets.DOCKERHUB_USER }}
+      #    password: ${{ secrets.DOCKERHUB_TOKEN }}
+      #    repository: ${{ env.IMAGENAME }}
 

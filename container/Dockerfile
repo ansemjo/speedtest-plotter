@@ -11,7 +11,10 @@ RUN apk add --no-cache alpine-sdk cmake curl-dev libxml2-dev
 # configure and build binary
 WORKDIR /build
 RUN git clone https://github.com/taganaka/SpeedTest.git . \
-  && cmake -DCMAKE_BUILD_TYPE=Release . \
+  && cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CXX_FLAGS="-Wno-psabi" \
+    . \
   && make
 
 # --------- build application container ----------

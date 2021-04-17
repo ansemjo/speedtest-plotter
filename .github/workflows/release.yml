@@ -13,7 +13,7 @@ on:
     - cron: "0 13 * * 1"
 
 env:
-  PLATFORMS: "linux/amd64,linux/arm/v7,linux/arm/v6,linux/arm64, linux/ppc64le"     # Build for which platforms
+  PLATFORMS: "linux/amd64,linux/arm/v7,linux/arm/v6,linux/arm64,linux/ppc64le"      # Build for which platforms
   IMAGENAME: "${{ secrets.DOCKERHUB_USER }}/speedtest"                              # Name of the image
   DEFAULT_TAG: "latest"                                                             # Which tag is beeing used if we are building for master/main branch 
   DOCKER_USER: "${{ secrets.DOCKERHUB_USER }}"                                      # Which user to use to login to DockerHub

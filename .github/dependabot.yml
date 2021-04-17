@@ -3,7 +3,7 @@ updates:
 
 # Maintain dependencies for Docker
 - package-ecosystem: docker
-  directory: "/"
+  directory: "container/"
   schedule:
     interval: daily
   open-pull-requests-limit: 10

@@ -5,6 +5,7 @@
 FROM alpine:latest as compiler
 
 # install build framework and libraries
+# hadolint ignore=DL3018
 RUN apk add --no-cache alpine-sdk cmake curl-dev libxml2-dev
 
 # configure and build binary
@@ -17,10 +18,12 @@ RUN git clone https://github.com/taganaka/SpeedTest.git . \
 FROM python:3-alpine
 
 # install necessary packages and fonts
+# hadolint ignore=DL3018
 RUN apk add --no-cache gnuplot ttf-droid libcurl libxml2 libstdc++ libgcc tini
 
 # copy requirements file and install with pip
 COPY requirements.txt /requirements.txt
+# hadolint ignore=DL3018
 RUN apk add --no-cache --virtual build-deps musl-dev gcc postgresql-dev \
   && apk add --no-cache postgresql-libs \
   && pip install --no-cache-dir -r /requirements.txt \

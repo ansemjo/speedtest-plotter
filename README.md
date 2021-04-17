@@ -74,6 +74,20 @@ picture was created with:
       -e UPLOAD_SCALE=10 \
       ansemjo/speedtest
 
+If you want to test against a specific server, you can give a `host:port` combination
+in the environment variable `TESTSERVER`. You can use the API at
+[www.speedtest.net/api/js/servers](https://www.speedtest.net/api/js/servers?&limit=10&search=)
+to pick a suitable `host` key from the JSON; supply a parameter for `?search=...` if you need to.
+By default it lists servers close to you. **Note** that this is *different* from the
+`SERVERID` used previously! But you can use `?id=...` to search for a specific ID.
+
+For example, to test against wilhelm.tel in Norderstedt with the server ID 4087, you'd use:
+
+    docker run -d \
+      [...] \
+      -e TESTSERVER=speedtest.wtnet.de:8080 \
+      ansemjo/speedtest
+
 The webserver is a single-threaded Flask application and pipes the data to gnuplot in a subprocess, which may not be suitable
 for production usage. To disable the webserver completely set the `PORT` environment
 variable to an empty string. This will only take measurements and save them to the

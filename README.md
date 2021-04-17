@@ -12,11 +12,15 @@ The results can be displayed through a simple Flask webserver.
 
 ### CONTAINER
 <a href="https://hub.docker.com/r/ansemjo/speedtest">
+
 ![Docker Pulls](https://img.shields.io/docker/pulls/ansemjo/speedtest)
 ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/ansemjo/speedtest/latest)
+
 </a>
 <a href="https://github.com/ansemjo/speedtest-plotter/actions">
+
 ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ansemjo/speedtest-plotter/ci)
+
 </a>
 
 The main distribution method is the automatically built container at

@@ -13,9 +13,9 @@ on:
 
 env:
   PLATFORMS: "linux/amd64,linux/arm/v7,linux/arm/v6,linux/arm64, linux/ppc64le"     # Build for which platforms
-  IMAGENAME: "tdeutsch/speedtest"                                     # Name of the image
+  IMAGENAME: "ansemjo/speedtest"                                     # Name of the image
   DEFAULT_TAG: "latest"                                              # Which tag is beeing used if we are building for master/main branch 
-  DOCKER_USER: "tdeutsch"                                             # Which user to use to login to DockerHub
+  DOCKER_USER: "ansemjo"                                             # Which user to use to login to DockerHub
 
 jobs:
   docker:

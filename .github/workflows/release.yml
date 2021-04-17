@@ -1,0 +1,103 @@
+name: ci
+
+# This worflow needs this secret:
+#
+# DOCKERPASSWORD = Docker Hub token
+
+on:
+  push:
+    branches: [master]
+    tags: 'v*.*.*'
+  schedule:
+    - cron: "0 13 * * 1"
+
+env:
+  PLATFORMS: "linux/amd64,linux/arm/v7,linux/arm/v6,linux/arm64, linux/ppc64le"     # Build for which platforms
+  IMAGENAME: "tdeutsch/speedtest"                                     # Name of the image
+  DEFAULT_TAG: "latest"                                              # Which tag is beeing used if we are building for master/main branch 
+  DOCKER_USER: "tdeutsch"                                             # Which user to use to login to DockerHub
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Generate Build-Args
+        id: build-args
+        run: |
+          # echo ::set-output name=build-arg1::"buildarg1"
+          # echo ::set-output name=build-arg2::"buildarg2"
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Prepare
+        id: prep
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            if [[ $VERSION =~ ^v([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]]; then
+               MAJOR="${BASH_REMATCH[1]}"
+               MINOR="${BASH_REMATCH[2]}"
+               PATCH="${BASH_REMATCH[3]}"
+
+               TAGS="${{ env.IMAGENAME }}:latest"
+               TAGS="${TAGS},${{ env.IMAGENAME }}:${MAJOR}"
+               TAGS="${TAGS},${{ env.IMAGENAME }}:${MAJOR}.${MINOR}"
+               TAGS="${TAGS},${{ env.IMAGENAME }}:${MAJOR}.${MINOR}.${PATCH}"
+            else
+               TAGS="${{ env.IMAGENAME }}:${VERSION}"
+            fi
+          elif [[ $GITHUB_REF == refs/heads/* ]]; then
+            TAGS="${{ env.IMAGENAME }}:${{ env.DEFAULT_TAG }}"
+          elif [[ $GITHUB_REF == refs/pull/* ]]; then
+            TAGS="${{ env.IMAGENAME }}:pr-${{ github.event.number }}"
+          fi
+          echo ::set-output name=tags::${TAGS}
+          echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+      -
+        name: Hadolint
+        uses: brpaz/hadolint-action@v1.3.1
+        with: 
+          dockerfile: Dockerfile
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ secrets.DOCKERPASSWORD }}
+      -
+        name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.prep.outputs.tags }}
+          build-args: |
+            ${{ steps.build-args.outputs.build-arg1 }}
+            ${{ steps.build-args.outputs.build-arg2 }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id }}
+      -
+        name: Docker Hub Description
+        uses: peter-evans/dockerhub-description@v2
+        with:
+          username: ${{ env.DOCKER_USER }}
+          password: ${{ secrets.DOCKERPASSWORD }}
+          repository: ${{ env.IMAGENAME }}
+

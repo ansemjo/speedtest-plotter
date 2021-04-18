@@ -27,7 +27,7 @@ RUN apk add --no-cache gnuplot ttf-droid libcurl libxml2 libstdc++ libgcc tini
 # copy requirements file and install with pip
 COPY requirements.txt /requirements.txt
 # hadolint ignore=DL3018
-RUN apk add --no-cache --virtual build-deps musl-dev gcc postgresql-dev \
+RUN apk add --no-cache --virtual build-deps musl-dev gcc g++ postgresql-dev \
   && apk add --no-cache postgresql-libs \
   && pip install --no-cache-dir -r /requirements.txt \
   && apk del --purge build-deps

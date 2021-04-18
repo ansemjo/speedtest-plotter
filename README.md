@@ -37,10 +37,14 @@ in `/data/speedtests.db` and run the webserver on port `8000`. Visit http://loca
 to look at the plotted results. (*Note: The smoothed bezier curves require at least two
 measurements and the image will stay blank otherwise. So you might have to wait a while first.*)
 
+#### TIMEZONE
+
 Your local timezone can be set with the `TZ` environment variable and a string from
 `tzselect`. If none is set usually UTC is assumed. For example users in Japan should use:
 
     docker run -d -p 8000:8000 -e TZ=Asia/Tokyo ansemjo/speedtest
+
+#### DATABASE
 
 For data persistence, either mount a volume at `/data` to save the database file
 or set the environment variable `DATABASE` to an SQLAlchemy-compatible URI. A PostgreSQL
@@ -52,11 +56,15 @@ URI might look like this:
       -e DATABASE=postgresql://user:password@hostname:5432/database' \
       ansemjo/speedtest
 
+#### SCHEDULE
+
 You can modify the measurement schedule with the environment variables `MINUTES` and
 `SCHEDULE`. The former takes a measurement every `n` minutes and the latter may define
 an entirely custom cron schedule like "four times a day":
 
     docker run -d -p 8000:8000 -e SCHEDULE="0 3,9,15,21 * * *" ansemjo/speedtest
+
+#### MARKERS AND SCALING
 
 To add horizontal dashed lines in the plot (e.g. to mark your expected bandwidths)
 you can use environment variables `MARKER_DOWNLOAD` and `MARKER_UPLOAD`. The values
@@ -74,6 +82,8 @@ picture was created with:
       -e UPLOAD_SCALE=10 \
       ansemjo/speedtest
 
+#### SPECIFIC TESTSERVER
+
 If you want to test against a specific server, you can give a `host:port` combination
 in the environment variable `TESTSERVER`. You can use the API at
 [www.speedtest.net/api/js/servers](https://www.speedtest.net/api/js/servers?&limit=10&search=)
@@ -88,12 +98,16 @@ For example, to test against wilhelm.tel in Norderstedt with the server ID 4087,
       -e TESTSERVER=speedtest.wtnet.de:8080 \
       ansemjo/speedtest
 
+#### DISABLE WEBSERVER
+
 The webserver is a single-threaded Flask application and pipes the data to gnuplot in a subprocess, which may not be suitable
 for production usage. To disable the webserver completely set the `PORT` environment
 variable to an empty string. This will only take measurements and save them to the
 database.
 
     docker run -d -e PORT="" -v speedtests:/data ansemjo/speedtest
+
+#### SHORTHAND COMMANDS
 
 To dump the results as CSV from a running container use the `dump` command:
 

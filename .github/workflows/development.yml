@@ -19,7 +19,7 @@ jobs:
           # echo ::set-output name=build-arg2::"buildarg2"
       -
         name: Hadolint
-        uses: brpaz/hadolint-action@v1.4.0
+        uses: brpaz/hadolint-action@v1.5.0
         with: 
           dockerfile: container/Dockerfile
       -

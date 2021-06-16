@@ -2,7 +2,7 @@
 # Licensed under the MIT License
 
 # ---------- build taganaka/SpeedTest binary ----------
-FROM alpine:3.13.5 as compiler
+FROM alpine:3.14.0 as compiler
 
 # install build framework and libraries
 # hadolint ignore=DL3018

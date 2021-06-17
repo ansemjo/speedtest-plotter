@@ -2,7 +2,7 @@ alembic==1.6.2
 banal==1.0.6
 click==7.1.2
 dataset==1.5.0
-Flask==1.1.2
+Flask==2.0.1
 greenlet==1.1.0
 itsdangerous==1.1.0
 Jinja2==2.11.3

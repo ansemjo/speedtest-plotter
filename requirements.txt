@@ -1,6 +1,6 @@
 alembic==1.6.2
 banal==1.0.6
-click==7.1.2
+click==8.0.1
 dataset==1.5.0
 Flask==1.1.2
 greenlet==1.1.0

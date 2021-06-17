@@ -16,5 +16,5 @@ updates:
 - package-ecosystem: pip
   directory: /
   schedule:
-    interval: daily
-  open-pull-requests-limit: 10
+    interval: weekly # very noisy if not updated all at once
+  open-pull-requests-limit: 1

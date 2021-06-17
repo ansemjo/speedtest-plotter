@@ -13,4 +13,4 @@ python-dateutil==2.8.1
 python-editor==1.0.4
 six==1.16.0
 SQLAlchemy==1.4.14
-Werkzeug==1.0.1
+Werkzeug==2.0.1

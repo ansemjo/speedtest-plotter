@@ -1,38 +1,28 @@
-name: ci
-
-# This worflow needs this secret:
-#
-# DOCKERHUB_TOKEN = Docker Hub token
-# DOCKERHUB_USER = Docker Hub user
+name: release
 
 on:
   push:
     branches: [master]
-    tags: 'v*.*.*'
+    tags: ["v*.*.*"]
   schedule:
     - cron: "0 13 * * 1"
 
 env:
-  PLATFORMS: "linux/amd64,linux/arm/v7,linux/arm/v6,linux/arm64,linux/ppc64le"      # Build for which platforms
-  IMAGENAME: "${{ secrets.DOCKERHUB_USER }}/speedtest"                              # Name of the image
-  DEFAULT_TAG: "latest"                                                             # Which tag is beeing used if we are building for master/main branch 
-  DOCKER_USER: "${{ secrets.DOCKERHUB_USER }}"                                      # Which user to use to login to DockerHub
+  PLATFORMS: linux/amd64,linux/arm/v7,linux/arm/v6,linux/arm64 #,linux/ppc64le
+  IMAGENAME: ${{ secrets.DOCKERHUB_USER }}/speedtest
+  DEFAULT_TAG: "latest"
+  # needed secrets:
+  # DOCKERHUB_USER  - Docker Hub user
+  # DOCKERHUB_TOKEN - Docker Hub token
 
 jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Generate Build-Args
-        id: build-args
-        run: |
-          # echo ::set-output name=build-arg1::"buildarg1"
-          # echo ::set-output name=build-arg2::"buildarg2"
-      -
-        name: Checkout
+      - name: Checkout
         uses: actions/checkout@v2.3.4
-      -
-        name: Prepare
+
+      - name: Prepare Tags
         id: prep
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
@@ -56,25 +46,25 @@ jobs:
           fi
           echo ::set-output name=tags::${TAGS}
           echo ::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-      -
-        name: Hadolint
+
+      - name: Hadolint
         uses: brpaz/hadolint-action@v1.5.0
-        with: 
+        with:
           dockerfile: container/Dockerfile
-      -
-        name: Set up QEMU
+
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@v1.2.0
-      -
-        name: Set up Docker Buildx
+
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1.3.0
-      -
-        name: Login to Docker Hub
+
+      - name: Login to Docker Hub
         uses: docker/login-action@v1.9.0
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
+
+      - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2.5.0
         with:
@@ -83,9 +73,6 @@ jobs:
           platforms: ${{ env.PLATFORMS }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.prep.outputs.tags }}
-          build-args: |
-            ${{ steps.build-args.outputs.build-arg1 }}
-            ${{ steps.build-args.outputs.build-arg2 }}
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=${{ github.event.repository.description }}
@@ -94,13 +81,11 @@ jobs:
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id }}
-
+      
       # Disabled because Personal Access Tokens cannot be used with the API right now.
-      #-
-      #  name: Docker Hub Description
+      #- name: Docker Hub Description
       #  uses: peter-evans/dockerhub-description@v2
       #  with:
       #    username: ${{ secrets.DOCKERHUB_USER }}
       #    password: ${{ secrets.DOCKERHUB_TOKEN }}
       #    repository: ${{ env.IMAGENAME }}
-

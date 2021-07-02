@@ -1,6 +1,9 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
+# Check with hadolint:
+# $ docker run --rm -i hadolint/hadolint < Dockerfile
+
 # ---------- build taganaka/SpeedTest binary ----------
 FROM alpine:3.14.0 as compiler
 

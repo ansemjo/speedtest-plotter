@@ -24,7 +24,8 @@ The results can be displayed through a simple Flask webserver.
 </a>
 
 The main distribution method is the automatically built container at
-[ansemjo/speedtest](https://hub.docker.com/r/ansemjo/speedtest).
+[ansemjo/speedtest](https://hub.docker.com/r/ansemjo/speedtest) or
+[ghcr.io/ansemjo/speedtest](https://github.com/ansemjo/speedtest-plotter/pkgs/container/speedtest).
 Obviously, you need to have a container runtime like `docker` or `podman`
 installed to run the container.
 

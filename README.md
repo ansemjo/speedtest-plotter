@@ -120,7 +120,7 @@ To trigger a measurement manually use the `measure` command:
 
 To reimport a previous dump in a fresh container use `import`:
 
-    docker exec $containerid import < results.csv
+    docker exec -i $containerid import < results.csv
 
 This can also be used to import results obtained manually with `speedtest-cli`.
 

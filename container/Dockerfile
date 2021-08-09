@@ -5,7 +5,7 @@
 # $ docker run --rm -i hadolint/hadolint < Dockerfile
 
 # ---------- build taganaka/SpeedTest binary ----------
-FROM alpine:3.14.0 as compiler
+FROM alpine:3.14.1 as compiler
 
 # install build framework and libraries
 # hadolint ignore=DL3018

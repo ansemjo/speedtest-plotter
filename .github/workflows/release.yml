@@ -2,8 +2,11 @@ name: release
 
 on:
   push:
-    branches: [master]
-    tags: ["v*.*.*"]
+    branches:
+      - master
+      - main
+    tags:
+      - "v*.*.*"
   schedule:
     - cron: "0 13 * * 1"
 

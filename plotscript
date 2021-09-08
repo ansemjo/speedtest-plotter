@@ -13,10 +13,10 @@ set output ARG2
 set multiplot
 
 # manual margins for multiplot
-set bmargin screen 0.11
-set tmargin screen 0.92
-set lmargin screen 0.12
-set rmargin screen 0.91
+set bmargin 5
+set tmargin 4
+set lmargin 18
+set rmargin 12
 
 # pick colors
 rgb_download      = "#00000080"
@@ -55,8 +55,9 @@ if (empty_range != 1 && exists("xrange_from") && exists("xrange_to")) \
 set title "Speedtest Results\ngithub.com/ansemjo/speedtest-plotter"
 set timestamp "plotted %F %T %Z"
 set xlabel "Measurement Date"
-set ylabel "Bandwidth" offset -12, 0
+set ylabel "Bandwidth" offset -13, 0
 set xtics format "%Y-%m-%d\n%H:%M:%S" out
+set key right top
 
 # set upper ping range
 pingrange = PING_mean + (3 * PING_stddev)
@@ -68,9 +69,10 @@ unset yrange
 set y2label "Ping"
 set y2tics format "%.0f ms" nomirror out
 set y2range [0:pingrange]
-set key at graph 1, graph 0.92
 set linetype 1 lw 1 lc rgb rgb_ping pt 1
 plot \
+  keyentry title " ", \
+  keyentry title " ", \
   ARG1 using 4:6 title gprintf("Ping (avg. %.0f ms)", PING_mean) axes x1y2 with points lt 1
 
 # unset elements that would be duplicate
@@ -115,7 +117,6 @@ set ytics format "%.2s %cBit/s" nomirror out
 if (ulscale != 1.0) set ytics offset 0,0.4 interval tc rgb rgb_download_text;
 
 # --> plot download
-set key at graph 1, graph 0.98
 set linetype 1 lw 1 lc rgb rgb_download_fade
 set linetype 2 lw 3 lc rgb rgb_download
 plot \
@@ -144,9 +145,9 @@ if (ulscale != 1.0) \
   else unset ytics;
 
 # --> plot upload
-set key at graph 1, graph 0.95
 set linetype 1 lw 1 lc rgb rgb_upload_fade
 set linetype 2 lw 3 lc rgb rgb_upload
 plot \
+  keyentry title " ", \
   ARG1 using 4:8 notitle with steps, \
   ARG1 using 4:8 title gprintf("Upload (avg. %.2s %cBit/s)", UPLOAD_mean) sm bezier

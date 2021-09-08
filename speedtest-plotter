@@ -242,11 +242,9 @@ def flask_server():
     try:
       (query, params) = request_params(flask.request)
       # dummy check if all parameters are legal
-      retrieve_measurements(**params)
-      # TODO: find an elegant way to display *some* measurement?
-      # - using rows[0] is a problem if there's no data in range
-      # - using latest() is not useful when looking at a historic range
-      #last = latest()
+      _, rows = retrieve_measurements(**params)
+      rows = list(rows)
+      last = rows[0] if len(rows) else None
       total = len(table)
 
       TEMPLATE = """
@@ -274,6 +272,10 @@ def flask_server():
               body {
                 background-color: white;
               }
+              table td {
+                text-align: right;
+                padding: 3px 10px;
+              }
             </style>
           </head>
           <body>
@@ -288,20 +290,41 @@ def flask_server():
                 <input type="text" name="date" value="{{ date }}" title="a particular date in iso format">
                 <input type="submit" value="Apply">
               </form>
-              {#<p>
-                Latest Measurement at {{ last['Timestamp'] | datefmt }} to {{ last['Sponsor'] }} ({{ last['Server ID'] }})<br>
-                Download: {{ last['Download'] | mbits }},
-                Upload: {{ last['Upload'] | mbits }},
-                Ping: {{ "%d" | format( last['Ping'] | int ) }} ms
-              </p>#}
               <a href="/results.csv?{{ query }}">
                 <img src="/results.svg?{{ query }}">
               </a>
+              {% if last is not none %}
+              <p>
+                <table border="0">
+                  <th colspan="2"> Latest Measurement in View </th>
+                  <tr>
+                    <td> Timestamp </td>
+                    <td>{{ last['Timestamp'] | datefmt }} </td>
+                  </tr>
+                  <tr>
+                    <td> Server </td>
+                    <td> {{ last['Server ID'] }} </td>
+                  </tr>
+                  <tr>
+                    <td> Download </td>
+                    <td> {{ last['Download'] | mbits }} </td>
+                  </tr>
+                  <tr>
+                    <td> Upload </td>
+                    <td> {{ last['Upload'] | mbits }} </td>
+                  </tr>
+                  <tr>
+                    <td> Ping </td>
+                    <td> {{ "%d" | format( last['Ping'] | int ) }} ms </td>
+                  </tr>
+                </table>
+              </p>
+              {% endif %}
             </center>
           </body>
         </html>
       """
-      return flask.render_template_string(TEMPLATE, total=total, query=query, **params)
+      return flask.render_template_string(TEMPLATE, total=total, query=query, last=last, **params)
 
     except Exception as e:
       err = str(e)

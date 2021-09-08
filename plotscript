@@ -8,7 +8,14 @@ stats ARG1 using 7 name "DOWNLOAD"
 stats ARG1 using 8 name "UPLOAD"
 set xdata time
 set timefmt "%Y-%m-%dT%H:%M:%S.*Z"
-set terminal svg size 1280, 800 dynamic
+
+# set output resolution and font size
+# config with: gnuplot -e 'font = "Name, size"' -e 'resolution = 1920,1080' ...
+if (!exists("font")) font = ",12";
+if (!exists("resolution")) resolution = "1280,800";
+resX = substr(resolution, 1, strstrt(resolution, ","));
+resY = substr(resolution, strstrt(resolution, ",") + 1, strlen(resolution));
+set terminal svg enhanced font font size resX,resY dynamic
 set output ARG2
 set multiplot
 

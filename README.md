@@ -77,6 +77,16 @@ picture was created with:
       -e UPLOAD_SCALE=10 \
       ansemjo/speedtest
 
+#### FONT AND RESOLUTION
+
+The resolution and font of the SVG output can be configured with environment variables `RESOLUTION` and `FONT` respectively. Output resolution is expected as a comma-separated value of x- and y-size; the default is `1280,800`. The font can take either only a name (`Arial`), only a size (`,18`) or both (`Arial, 18`). Note that for a font in an SVG to work, the client needs to have the font, *not* the server. For example:
+
+    docker run -d \
+      [...] \
+      -e RESOLUTION=1920,1080 \
+      -e FONT="Fira Sans, 14" \
+      ansemjo/speedtest
+
 #### SPECIFIC TESTSERVER
 
 If you want to test against a specific server, you can give a `host:port` combination

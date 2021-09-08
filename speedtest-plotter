@@ -15,6 +15,8 @@ SERVER = os.environ.get("TESTSERVER", None)
 MARKER_DOWNLOAD = os.environ.get("MARKER_DOWNLOAD", 0)
 MARKER_UPLOAD = os.environ.get("MARKER_UPLOAD", 0)
 UPLOAD_SCALE = os.environ.get("UPLOAD_SCALE", 1)
+PLOT_FONT = os.environ.get("FONT", ",12")
+PLOT_RESOLUTION = os.environ.get("RESOLUTION", "1280,800")
 
 # commandline parser
 p = argparse.ArgumentParser()
@@ -27,6 +29,8 @@ p.add_argument("-t", dest="date", help="dump up to or after this iso timestamp",
 p.add_argument("--marker-download", help="add expected download marker in plot", default=MARKER_DOWNLOAD)
 p.add_argument("--marker-upload", help="add expected upload marker in plot", default=MARKER_UPLOAD)
 p.add_argument("--upload-scale", help="scale upload yrange relative to download", default=UPLOAD_SCALE)
+p.add_argument("--font", help="use different font for plot (Name,size)", default=PLOT_FONT)
+p.add_argument("--resolution", help="change svg output resolution (resx,resy)", default=PLOT_RESOLUTION)
 p.add_argument("--debug", help="enable flask and sql debugging", action="store_true")
 p.add_argument("command", choices=["serve", "measure", "dump", "import"], help="start webserver, take a measurement, dump results to csv or reimport csv data")
 args = p.parse_args()
@@ -217,12 +221,9 @@ def flask_server():
     limit = req.args.get("limit", None) or "7d"
     order = req.args.get("order", None) or "desc"
     date = req.args.get("date", None) or "now"
-    markerdl = flask.request.args.get("marker_download", None) or args.marker_download
-    markerul = flask.request.args.get("marker_upload", None) or args.marker_upload
-    ulscale = flask.request.args.get("upload_scale", None) or args.upload_scale
     # save the entire query component to pass on
     query = urlparse(req.url).query
-    return (query, dict(limit=limit, order=order, date=date, markerdl=markerdl, markerul=markerul, ulscale=ulscale))
+    return (query, dict(limit=limit, order=order, date=date))
 
   # scale number as mbit/s
   @app.template_filter("mbits")
@@ -285,9 +286,6 @@ def flask_server():
                   <option value="desc" {% if order != "asc" %}selected="selected"{% endif %}>Before</option>
                 </select>
                 <input type="text" name="date" value="{{ date }}" title="a particular date in iso format">
-                <input type="hidden" name="marker_download" value="{{ markerdl }}">
-                <input type="hidden" name="marker_upload" value="{{ markerul }}">
-                <input type="hidden" name="upload_scale" value="{{ ulscale }}">
                 <input type="submit" value="Apply">
               </form>
               {#<p>
@@ -331,9 +329,12 @@ def flask_server():
       pr = ["-e", f"xrange_from = \"{pr[0]}\"", "-e", f"xrange_to = \"{pr[1]}\""] if pr else []
       empty = ["-e", "empty_range = 1"] if empty else []
       plot = run(["gnuplot", *pr, *empty,
-        "-e", f"marker_download = {params['markerdl']}",
-        "-e", f"marker_upload = {params['markerul']}",
-        "-e", f"upload_scale = {params['ulscale']}",
+        # TODO: proper escaping to prevent injection
+        "-e", f"marker_download = {args.marker_download}",
+        "-e", f"marker_upload = {args.marker_upload}",
+        "-e", f"upload_scale = {args.upload_scale}",
+        "-e", f"font = \"{args.font}\"",
+        "-e", f"resolution = \"{args.resolution}\"",
         "-c", "plotscript", "/dev/stdin", "/dev/stdout"], stdin=data)
       data.close()
       if plot.returncode != 0:

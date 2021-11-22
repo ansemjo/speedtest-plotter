@@ -10,7 +10,7 @@ banal==1.0.6
     # via dataset
 click==8.0.1
     # via flask
-dataset==1.5.0
+dataset==1.5.1
     # via -r requirements.in
 flask==2.0.2
     # via -r requirements.in

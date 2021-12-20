@@ -80,7 +80,7 @@ set linetype 1 lw 1 lc rgb rgb_ping pt 1
 plot \
   keyentry title " ", \
   keyentry title " ", \
-  ARG1 using 4:6 title gprintf("Ping (avg. %.0f ms)", PING_mean) axes x1y2 with points lt 1
+  ARG1 using 4:6 title gprintf("Ping (avg. %.0f ms)", PING_mean) axes x1y2 with steps lt 1
 
 # unset elements that would be duplicate
 unset title

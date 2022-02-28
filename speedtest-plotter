@@ -3,7 +3,7 @@
 # Copyright (c) 2019 Anton Semjonov
 # Licensed under the MIT License
 
-import subprocess, csv, json, tempfile, sys, argparse, os, io, signal, re, datetime, logging
+import subprocess, csv, json, tempfile, sys, argparse, os, io, signal, re, datetime, logging, time
 import dataset
 from dateutil import parser as dateparser, tz
 from urllib.parse import urlparse
@@ -123,14 +123,20 @@ def parse_measurement(js, now=utcnow().isoformat()):
   )))
 
 # take a new measurement with speedtest-cli
-def take_measurement():
+def take_measurement(attempt=0):
   cmd = ["SpeedTest", "--output", "json"]
   if args.server:
     cmd += ["--test-server", args.server]
   now = utcnow().isoformat()
   res = run(cmd)
   if res.returncode != 0:
-    raise SpeedTestError(res.stderr.decode())
+    stderr = res.stderr.decode()
+    if "download server list" in stderr and attempt < 3:
+      # silently retry when server list endpoint was unavailable
+      time.sleep(15)
+      return take_measurement(attempt+1)
+    else:
+      raise SpeedTestError(stderr)
   r = parse_measurement(json.loads(res.stdout), now)
   table.insert(r)
   print(r)

@@ -286,7 +286,7 @@ def flask_server():
           </head>
           <body>
             <center>
-              <form action="/" method="get">
+              <form action="." method="get">
                 Show
                 <input type="text" name="limit" value="{{ limit }}" title="limit number of results (total: {{ total }})">
                 <select name="order" title="'after' (descending) or 'up to' (ascending before)">
@@ -296,8 +296,8 @@ def flask_server():
                 <input type="text" name="date" value="{{ date }}" title="a particular date in iso format">
                 <input type="submit" value="Apply">
               </form>
-              <a href="/results.csv?{{ query }}">
-                <img src="/results.svg?{{ query }}">
+              <a href="results.csv?{{ query }}">
+                <img src="results.svg?{{ query }}">
               </a>
               {% if last is not none %}
               <p>

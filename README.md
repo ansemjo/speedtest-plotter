@@ -10,7 +10,10 @@ The results can be displayed through a simple Flask webserver.
 
 ## USAGE
 
+For changes between releases check the [changelog](CHANGELOG.md).
+
 ### CONTAINER
+
 <a href="https://github.com/ansemjo/speedtest-plotter/actions">
 
 ![GitHub Workflow Status](https://github.com/ansemjo/speedtest-plotter/actions/workflows/release.yml/badge.svg)

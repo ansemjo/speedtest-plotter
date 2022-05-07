@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+None.
+
+## v0.5.1 - 2022-05-07
+
 ## Added
 - Added `FETCH_LIMIT`/`--fetch-limit` to configure the default time to fetch for plotting (requested in #53)
 

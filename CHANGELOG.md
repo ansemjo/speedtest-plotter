@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## Added
+- Added `FETCH_LIMIT`/`--fetch-limit` to configure the default time to fetch for plotting (requested in #53)
+
 ### Changed
 - Bumped Flask version to 2.1.2 (#87)
 - Numerous Dependabot updates to workflow action versions

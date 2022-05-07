@@ -15,6 +15,7 @@ SERVER = os.environ.get("TESTSERVER", None)
 MARKER_DOWNLOAD = os.environ.get("MARKER_DOWNLOAD", 0)
 MARKER_UPLOAD = os.environ.get("MARKER_UPLOAD", 0)
 UPLOAD_SCALE = os.environ.get("UPLOAD_SCALE", 1)
+FETCH_LIMIT = os.environ.get("FETCH_LIMIT", "7d")
 PLOT_FONT = os.environ.get("FONT", ",12")
 PLOT_RESOLUTION = os.environ.get("RESOLUTION", "1280,800")
 
@@ -29,6 +30,7 @@ p.add_argument("-t", dest="date", help="dump up to or after this iso timestamp",
 p.add_argument("--marker-download", help="add expected download marker in plot", default=MARKER_DOWNLOAD)
 p.add_argument("--marker-upload", help="add expected upload marker in plot", default=MARKER_UPLOAD)
 p.add_argument("--upload-scale", help="scale upload yrange relative to download", default=UPLOAD_SCALE)
+p.add_argument("--fetch-limit", help="default time limit to fetch for display", default=FETCH_LIMIT)
 p.add_argument("--font", help="use different font for plot (Name,size)", default=PLOT_FONT)
 p.add_argument("--resolution", help="change svg output resolution (resx,resy)", default=PLOT_RESOLUTION)
 p.add_argument("--debug", help="enable flask and sql debugging", action="store_true")
@@ -224,7 +226,7 @@ def flask_server():
   # retrieve common request parameters for retrieval and plotting
   def request_params(req):
     # get interesting parameters
-    limit = req.args.get("limit", None) or "7d"
+    limit = req.args.get("limit", None) or args.fetch_limit
     order = req.args.get("order", None) or "desc"
     date = req.args.get("date", None) or "now"
     # save the entire query component to pass on

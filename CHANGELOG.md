@@ -1,3 +1,11 @@
+# Changelog
+
+## Unreleased
+
+### Changed
+- Bumped Flask version to 2.1.2 (#87)
+- Numerous Dependabot updates to workflow action versions
+
 ## v0.5.0 - 2022-05-07
 
 ### Added

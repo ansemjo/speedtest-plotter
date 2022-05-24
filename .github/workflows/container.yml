@@ -1,0 +1,103 @@
+name: container
+
+on:
+  push:
+    branches: [ main, devel ]
+    tags: [ v*.*.* ]
+  pull_request:
+    types: [ assigned, opened, synchronize, reopened ]
+  schedule:
+    - cron: "0 13 * * 1"
+
+env:
+
+  # build for multiple platforms when not a pull-request
+  PLATFORMS: ${{ fromJSON('[ "linux/amd64", "linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6,linux/ppc64le" ]')[ github.event_name != 'pull_request' ] }}
+
+  # how to name the image
+  IMAGENAME: speedtest
+  DEFAULT_TAG: "latest"
+
+  # dockerhub credentials
+  DOCKERHUB_USER: ansemjo
+  #DOCKERHUB_TOKEN - add as secret value 
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Prepare Tags
+        id: prep
+        shell: bash
+        run: |
+          TAGS=()
+          case "${GITHUB_REF}" in
+            # version releases
+            refs/tags/*)
+              VERSION="${GITHUB_REF#refs/tags/}"
+              if [[ ${VERSION} =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+                V=("${BASH_REMATCH[@]}")
+                TAGS+=("${{ env.IMAGENAME }}:${V[1]}" \
+                       "${{ env.IMAGENAME }}:${V[1]}.${V[2]}" \
+                       "${{ env.IMAGENAME }}:${V[1]}.${V[2]}.${V[3]}")
+              else
+                TAGS+=("${{ env.IMAGENAME }}:${VERSION}")
+              fi
+            ;&
+            # branch heads (+ fallthorugh)
+            refs/heads/*)
+              TAGS+=("${{ env.IMAGENAME }}:latest")
+              TAGS=$({ IFS=","; echo "${TAGS[*]/#/${{ env.DOCKERHUB_USER }}/}","${TAGS[*]/#/ghcr.io/${{ github.repository_owner }}/}"; })
+            ;;
+            # pull requests
+            refs/pull/*)
+              TAGS=("${{ github.repository_owner }}/${{ env.IMAGENAME }}:pr-${{ github.event.number }}")
+            ;;
+          esac
+          echo "TAGS ${TAGS}"
+          echo "::set-output name=tags::${TAGS}"
+          echo "::set-output name=head::${GITHUB_REF#refs/heads/}"
+          echo "::set-output name=created::$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.0.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.0.0
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2.0.0
+        if: ${{ github.event_name != 'pull_request' && steps.prep.outputs.head != 'devel' }}
+        with:
+          username: ${{ env.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2.0.0
+        if: ${{ github.event_name != 'pull_request' && steps.prep.outputs.head != 'devel' }}
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v3.0.0
+        with:
+          context: .
+          file: ./container/Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          push: ${{ github.event_name != 'pull_request' && steps.prep.outputs.head != 'devel' }}
+          tags: ${{ steps.prep.outputs.tags }}
+          labels: |
+            org.opencontainers.image.title=${{ github.event.repository.name }}
+            org.opencontainers.image.description=${{ github.event.repository.description }}
+            org.opencontainers.image.url=${{ github.event.repository.html_url }}
+            org.opencontainers.image.source=${{ github.event.repository.clone_url }}
+            org.opencontainers.image.created=${{ steps.prep.outputs.created }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id }}
+

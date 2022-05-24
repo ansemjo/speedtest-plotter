@@ -3,7 +3,8 @@
 ## Unreleased
 
 ### Changed
-- ~~Bump `alpine` image to 3.16.0 (#92)~~
+- ~~Bump `alpine` image to 3.16.0 (#92)~~ Reverted due to #93
+- Run a test measurement using built `linux/amd64` image before pushing to repositories
 
 ## v0.5.1 - 2022-05-07
 

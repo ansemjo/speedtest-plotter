@@ -16,7 +16,7 @@ env:
 
   # how to name the image
   IMAGENAME: speedtest
-  DEFAULT_TAG: "latest"
+  TESTIMAGE: "${{ github.repository_owner }}/speedtest:testing"
 
   # dockerhub credentials
   DOCKERHUB_USER: ansemjo
@@ -83,14 +83,27 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
-        id: docker_build
+      - name: Build and export to Docker
         uses: docker/build-push-action@v3.0.0
         with:
           context: .
           file: ./container/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.TESTIMAGE }}
+
+      - name: Run a test measurement in built image
+        run: |
+          docker run --rm ${{ env.TESTIMAGE }} measure
+
+      - name: Build and push
+        uses: docker/build-push-action@v3.0.0
+        if: ${{ github.event_name != 'pull_request' && steps.prep.outputs.head != 'devel' }}
+        with:
+          context: .
+          file: ./container/Dockerfile
           platforms: ${{ env.PLATFORMS }}
-          push: ${{ github.event_name != 'pull_request' && steps.prep.outputs.head != 'devel' }}
+          push: true
           tags: ${{ steps.prep.outputs.tags }}
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}

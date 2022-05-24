@@ -3,7 +3,7 @@
 ## Unreleased
 
 ### Changed
-- Bump `alpine` image to 3.16.0 (#92)
+- ~~Bump `alpine` image to 3.16.0 (#92)~~
 
 ## v0.5.1 - 2022-05-07
 

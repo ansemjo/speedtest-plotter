@@ -3,8 +3,10 @@
 ## Unreleased
 
 ### Changed
-- ~~Bump `alpine` image to 3.16.0 (#92)~~ Reverted due to #93
+- Bump `alpine` image to 3.16.1 (#97, see also #92 #93 #94)
 - Run a test measurement using built `linux/amd64` image before pushing to repositories
+- Bump flask from to 2.1.3 (#96)
+- Bump docker/build-push-action 3.1.1 (#99, see also #98)
 
 ## v0.5.1 - 2022-05-07
 

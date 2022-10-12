@@ -84,7 +84,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and export to Docker
-        uses: docker/build-push-action@v3.1.1
+        uses: docker/build-push-action@v3.2.0
         with:
           context: .
           file: ./container/Dockerfile
@@ -97,7 +97,7 @@ jobs:
           docker run --rm ${{ env.TESTIMAGE }} measure
 
       - name: Build and push
-        uses: docker/build-push-action@v3.1.1
+        uses: docker/build-push-action@v3.2.0
         if: ${{ github.event_name != 'pull_request' && steps.prep.outputs.head != 'devel' }}
         with:
           context: .

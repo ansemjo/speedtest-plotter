@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- Bumped various package and workflow action versions
+
 ## v0.5.2 - 2022-08-10
 
 ## Added

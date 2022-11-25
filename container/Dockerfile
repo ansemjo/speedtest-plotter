@@ -5,7 +5,7 @@
 # $ docker run --rm -i hadolint/hadolint < Dockerfile
 
 # ---------- build taganaka/SpeedTest binary ----------
-FROM alpine:3.16.3 as compiler
+FROM alpine:3.17 as compiler
 
 # install build framework and libraries
 # hadolint ignore=DL3018
@@ -21,16 +21,19 @@ RUN git clone https://github.com/taganaka/SpeedTest.git . \
   && make
 
 # --------- build application container ----------
-FROM python:3-alpine
+FROM alpine:3.17 as runtime
 
 # install necessary packages and fonts
 # hadolint ignore=DL3018
 RUN apk add --no-cache gnuplot ttf-droid libcurl libxml2 libstdc++ libgcc tini
 
+# install python3
+RUN apk add --no-cache python3 py3-pip
+
 # copy requirements file and install with pip
 COPY requirements.txt /requirements.txt
 # hadolint ignore=DL3018
-RUN apk add --no-cache --virtual build-deps musl-dev gcc g++ postgresql-dev \
+RUN apk add --no-cache --virtual build-deps python3-dev musl-dev gcc g++ postgresql-dev \
   && apk add --no-cache postgresql-libs \
   && pip install --no-cache-dir -r /requirements.txt \
   && apk del --purge build-deps

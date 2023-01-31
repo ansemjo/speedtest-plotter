@@ -1,4 +1,4 @@
-name: container
+name: Build container image
 
 on:
   push:
@@ -23,7 +23,9 @@ env:
   #DOCKERHUB_TOKEN - add as secret value 
 
 jobs:
-  docker:
+
+  container:
+    name: build image 📦
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -113,4 +115,44 @@ jobs:
             org.opencontainers.image.created=${{ steps.prep.outputs.created }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.licenses=${{ github.event.repository.license.spdx_id }}
+
+  dependabot:
+    # https://nicolasiensen.github.io/2022-07-23-automating-dependency-updates-with-dependabot-github-auto-merge-and-github-actions/
+    name: merge dependabot pr 🏗️
+    needs: [ container ]
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' && github.actor == 'dependabot[bot]' }}
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+
+      - name: Get Dependabot metadata
+        id: dependabot-metadata
+        uses: dependabot/fetch-metadata@v1.3.1
+
+      - name: Enable auto-merge for PR
+        run: |
+          gh pr merge --auto --rebase "$PR"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+
+      - name: Approve patch and minor updates
+        if: ${{ steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' || steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor' }}
+        run: |
+          gh pr review "$PR" --approve --body "Automatically **approving** this pull request because it includes a **patch or minor** update."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+
+      - name: Comment on major updates
+        if: ${{ steps.dependabot-metadata.outputs.update-type == 'version-update:semver-major' }}
+        run: |
+          gh pr comment "$PR" --body "Requires manual approval due to **major update**."
+          gh pr edit "$PR" --add-label "dependabot-major"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+
 

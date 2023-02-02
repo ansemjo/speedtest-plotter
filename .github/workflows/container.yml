@@ -129,7 +129,7 @@ jobs:
 
       - name: Get Dependabot metadata
         id: dependabot-metadata
-        uses: dependabot/fetch-metadata@v1.3.1
+        uses: dependabot/fetch-metadata@v1.3.6
 
       - name: Enable auto-merge for PR
         run: |

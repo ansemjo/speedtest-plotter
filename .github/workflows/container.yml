@@ -8,6 +8,7 @@ on:
     types: [ assigned, opened, synchronize, reopened ]
   schedule:
     - cron: "0 13 * * 1"
+  workflow_dispatch:
 
 env:
 

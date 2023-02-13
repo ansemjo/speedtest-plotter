@@ -108,11 +108,15 @@ set arrow from graph 0,first DOWNLOAD_mean to graph 1,first DOWNLOAD_mean \
 # find a sensible tick interval manually
 if (dlmarker) ymax = marker_download * 1.2 / 1000000; \
 else          ymax = DOWNLOAD_max / 1000000;
-ymax = int(ymax) % 10;
-if (ymax /   1 < 10) i =   1; else \
-if (ymax /   2 < 10) i =   2; else \
-if (ymax /   5 < 10) i =   5;
-interval = i * 1000000;
+# scale interval into appropriate magnitude
+interval = 1000000;
+while (ymax >= 100) {
+  ymax = ymax / 10;
+  interval = interval * 10;
+}
+if (ymax /   2 < 10) interval = interval *  2; else \
+if (ymax /   5 < 10) interval = interval *  5; else \
+if (ymax /  10 < 10) interval = interval * 10;
 set ytics format "%.2s %cBit/s" nomirror out
 
 # maybe split tick labels

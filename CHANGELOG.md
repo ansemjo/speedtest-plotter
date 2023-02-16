@@ -4,6 +4,8 @@
 
 ### Changed
 - Bumped various package and workflow action versions
+- Various GitHub workflow fixes and an added auto-approve for dependabot updates
+- Fixed `ytics` interval calulation for arbitrarily large `ymax` values
 
 ## v0.5.2 - 2022-08-10
 

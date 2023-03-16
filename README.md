@@ -20,15 +20,17 @@ For changes between releases check the [changelog](CHANGELOG.md).
 
 </a>
 
-The main distribution method is the automatically built container at
-[ansemjo/speedtest](https://hub.docker.com/r/ansemjo/speedtest) or
+The main distribution method is the automatically built container
 [ghcr.io/ansemjo/speedtest](https://github.com/ansemjo/speedtest-plotter/pkgs/container/speedtest).
 Obviously, you need to have a container runtime like `docker` or `podman`
 installed to run the container.
 
+**Note:** please update your image name to use the Github container registry.
+I will delete the DockerHub project sometime in the future.
+
 To start the container with default settings run:
 
-    docker run -d -p 8000:8000 ansemjo/speedtest
+    docker run -d -p 8000:8000 ghcr.io/ansemjo/speedtest
 
 This will take a measurement every 15 minutes, save them to a SQLite database
 in `/data/speedtests.db` and run the webserver on port `8000`. Visit http://localhost:8000
@@ -40,7 +42,7 @@ measurements and the image will stay blank otherwise. So you might have to wait 
 Your local timezone can be set with the `TZ` environment variable and a string from
 `tzselect`. If none is set usually UTC is assumed. For example users in Japan should use:
 
-    docker run -d -p 8000:8000 -e TZ=Asia/Tokyo ansemjo/speedtest
+    docker run -d -p 8000:8000 -e TZ=Asia/Tokyo ghcr.io/ansemjo/speedtest
 
 #### DATABASE
 
@@ -52,7 +54,7 @@ URI might look like this:
       -p 8000:8000 \
       -e TZ=Europe/Berlin \
       -e DATABASE=postgresql://user:password@hostname:5432/database' \
-      ansemjo/speedtest
+      ghcr.io/ansemjo/speedtest
 
 #### SCHEDULE
 
@@ -60,7 +62,7 @@ You can modify the measurement schedule with the environment variables `MINUTES`
 `SCHEDULE`. The former takes a measurement every `n` minutes and the latter may define
 an entirely custom cron schedule like "four times a day":
 
-    docker run -d -p 8000:8000 -e SCHEDULE="0 3,9,15,21 * * *" ansemjo/speedtest
+    docker run -d -p 8000:8000 -e SCHEDULE="0 3,9,15,21 * * *" ghcr.io/ansemjo/speedtest
 
 #### MARKERS AND SCALING
 
@@ -78,7 +80,7 @@ picture was created with:
       -e MARKER_DOWNLOAD=800 \
       -e MARKER_UPLOAD=40 \
       -e UPLOAD_SCALE=10 \
-      ansemjo/speedtest
+      ghcr.io/ansemjo/speedtest
 
 #### DEFAULT FETCH LIMIT
 
@@ -96,7 +98,7 @@ The resolution and font of the SVG output can be configured with environment var
       [...] \
       -e RESOLUTION=1920,1080 \
       -e FONT="Fira Sans, 14" \
-      ansemjo/speedtest
+      ghcr.io/ansemjo/speedtest
 
 #### SPECIFIC TESTSERVER
 
@@ -112,7 +114,7 @@ For example, to test against wilhelm.tel in Norderstedt with the server ID 4087,
     docker run -d \
       [...] \
       -e TESTSERVER=speedtest.wtnet.de:8080 \
-      ansemjo/speedtest
+      ghcr.io/ansemjo/speedtest
 
 #### DISABLE WEBSERVER
 
@@ -121,7 +123,7 @@ for production usage. To disable the webserver completely set the `PORT` environ
 variable to an empty string. This will only take measurements and save them to the
 database.
 
-    docker run -d -e PORT="" -v speedtests:/data ansemjo/speedtest
+    docker run -d -e PORT="" -v speedtests:/data ghcr.io/ansemjo/speedtest
 
 #### SHORTHAND COMMANDS
 

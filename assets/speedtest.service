@@ -8,8 +8,8 @@ After=network.target
 Type=simple
 Restart=on-failure
 
-#ExecStartPre=-/usr/bin/podman pull docker.io/ansemjo/speedtest
-ExecStartPre=-/usr/bin/podman create --net host -v /etc/speedtest:/data --name speedtest docker.io/ansemjo/speedtest
+#ExecStartPre=-/usr/bin/podman pull ghcr.io/ansemjo/speedtest
+ExecStartPre=-/usr/bin/podman create --net host -v /etc/speedtest:/data --name speedtest ghcr.io/ansemjo/speedtest
 ExecStart=/usr/bin/podman start -a --sig-proxy speedtest
 
 [Install]

@@ -2,14 +2,20 @@
 
 ## Unreleased
 
+## v0.6.0 - 2023-05-23
+
+### Added
+- Various GitHub workflow fixes and an added auto-approve for dependabot updates
+- Treat anything not parseable as a number in Gnuplot as missing data for continuous lines (#127)
+
 ### Changed
 - Bumped various package and workflow action versions
-- Various GitHub workflow fixes and an added auto-approve for dependabot updates
-- Fixed `ytics` interval calulation for arbitrarily large `ymax` values
+- Fixed `ytics` interval calulation for arbitrarily large `ymax` values (#117)
+- Use `ghcr.io` image references everywhere
 
 ## v0.5.2 - 2022-08-10
 
-## Added
+### Added
 - Run a test measurement using built `linux/amd64` image before pushing to repositories
 
 ### Changed
@@ -19,7 +25,7 @@
 
 ## v0.5.1 - 2022-05-07
 
-## Added
+### Added
 - Added `FETCH_LIMIT`/`--fetch-limit` to configure the default time to fetch for plotting (requested in #53)
 
 ### Changed

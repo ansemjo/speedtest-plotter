@@ -2,7 +2,7 @@
 # Licensed under the MIT License
 
 # general I/O and data options, find some stats
-set datafile separator ","
+set datafile separator "," missing NaN
 stats ARG1 using 6 name "PING"
 stats ARG1 using 7 name "DOWNLOAD"
 stats ARG1 using 8 name "UPLOAD"

@@ -172,6 +172,10 @@ Afterwards plot the results to an SVG picture with:
 
     gnuplot -c plotscript results.csv plot.svg
 
+## BREITBANDMESSUNG
+
+If you're in Germany and you have found that your measured speed regularly does not meet minimum contractual obligations ("erhebliche, kontinuierliche oder regelmäßig wiederkehrende Abweichung bei der Geschwindigkeit") and your provider is not responsive to your complaints, you could use the [Breitbandmessung App](https://www.breitbandmessung.de/) as the next step. It helps you prepare a well-formatted measurement report, which you could use to file a complaint with the Bundesnetzagentur (BNetzA).
+
 ## LICENSE
 
 Copyright (c) 2019 Anton Semjonov

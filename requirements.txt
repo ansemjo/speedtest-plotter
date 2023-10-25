@@ -39,5 +39,5 @@ sqlalchemy==1.4.42
     # via
     #   alembic
     #   dataset
-werkzeug==3.0.0
+werkzeug==3.0.1
     # via flask

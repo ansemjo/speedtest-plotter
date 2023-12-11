@@ -35,7 +35,7 @@ COPY requirements.txt /requirements.txt
 # hadolint ignore=DL3018
 RUN apk add --no-cache --virtual build-deps python3-dev musl-dev gcc g++ postgresql-dev \
   && apk add --no-cache postgresql-libs \
-  && pip install --no-cache-dir -r /requirements.txt \
+  && pip install --no-cache-dir --break-system-packages -r /requirements.txt \
   && apk del --purge build-deps
 
 # default cron interval

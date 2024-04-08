@@ -14,8 +14,6 @@ RUN apk add --no-cache alpine-sdk cmake curl-dev libxml2-dev
 # configure and build binary
 WORKDIR /build
 RUN git clone https://github.com/taganaka/SpeedTest.git . \
-  && git fetch origin pull/61/head:tempfix-stof \
-  && git switch tempfix-stof \
   && cmake \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_CXX_FLAGS="-Wno-psabi" \

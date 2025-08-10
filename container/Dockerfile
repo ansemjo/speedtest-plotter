@@ -20,6 +20,18 @@ RUN git clone https://github.com/taganaka/SpeedTest.git . \
     . \
   && make
 
+# ---------- build showwin/speedtest-go binary ----------
+FROM golang:1.24-alpine as compilergo
+
+# install build framework and libraries
+# hadolint ignore=DL3018
+RUN apk add --no-cache git
+
+# configure and build binary
+WORKDIR /build
+RUN git clone https://github.com/showwin/speedtest-go.git . \
+  && go build -o speedtest-go
+
 # --------- build application container ----------
 FROM alpine:3.22 as runtime
 
@@ -48,7 +60,7 @@ ENV PORT="8000"
 ENV DATABASE="sqlite:////data/speedtests.db"
 
 # copy built binary from first stage
-COPY --from=compiler /build/SpeedTest /usr/local/bin/SpeedTest
+COPY --from=compilergo /build/speedtest-go /usr/local/bin/speedtest-go
 
 # copy entrypoint and scripts
 WORKDIR /opt/speedtest-plotter

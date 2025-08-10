@@ -124,7 +124,24 @@ def parse_measurement(js, now=utcnow().isoformat()):
     client.get("ip", ""),
   )))
 
-# take a new measurement with speedtest-cli
+# parse the json output of showwin/speedtest-go
+def parse_measurement_go(js, now=utcnow().isoformat()):
+  server = js.get("servers", [{}])[0]
+  client = js.get("user_info", {})
+  return dict(zip(FIELDNAMES, (
+    server.get("id", ""),
+    server.get("sponsor", ""),
+    server.get("name", ""),
+    now,
+    server.get("distance", ""),
+    server.get("latency", 0) / 1000000,
+    server.get("dl_speed") * 8,
+    server.get("ul_speed") * 8,
+    "",
+    client.get("IP", ""),
+  )))
+
+# take a new measurement with taganaka/SpeedTest
 def take_measurement(attempt=0):
   cmd = ["SpeedTest", "--output", "json"]
   if args.server:
@@ -140,6 +157,26 @@ def take_measurement(attempt=0):
     else:
       raise SpeedTestError(stderr)
   r = parse_measurement(json.loads(res.stdout), now)
+  table.insert(r)
+  print(r)
+
+# take a new measurement with taganaka/SpeedTest
+def take_measurement_go(attempt=0):
+  # I think the --unit doesn't do anything for JSON but be explicit what we expect
+  cmd = ["speedtest-go", "--json", "--unit", "decimal-bytes"]
+  if args.server:
+    cmd += ["-s", args.server]
+  now = utcnow().isoformat()
+  res = run(cmd)
+  if res.returncode != 0:
+    stderr = res.stderr.decode()
+    if "download server list" in stderr and attempt < 3:
+      # silently retry when server list endpoint was unavailable
+      time.sleep(15)
+      return take_measurement_go(attempt+1)
+    else:
+      raise SpeedTestError(stderr)
+  r = parse_measurement_go(json.loads(res.stdout), now)
   table.insert(r)
   print(r)
 
@@ -395,7 +432,7 @@ try:
     flask_server()
 
   elif args.command == "measure":
-    take_measurement()
+    take_measurement_go()
 
   elif args.command == "import":
     for m in csv_reader(sys.stdin):

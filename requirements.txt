@@ -30,7 +30,7 @@ markupsafe==3.0.2
     #   jinja2
     #   mako
     #   werkzeug
-psycopg2==2.9.10
+psycopg2==2.9.11
     # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via -r requirements.in

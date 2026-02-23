@@ -4,17 +4,14 @@ updates:
 - package-ecosystem: docker
   directory: container/
   schedule:
-    interval: daily
-  open-pull-requests-limit: 10
+    interval: monthly
 
 - package-ecosystem: github-actions
   directory: /
   schedule:
-    interval: daily
-  open-pull-requests-limit: 10
+    interval: monthly
 
 - package-ecosystem: pip
   directory: /
   schedule:
-    interval: weekly # very noisy if not updated all at once
-  open-pull-requests-limit: 1
+    interval: monthly
